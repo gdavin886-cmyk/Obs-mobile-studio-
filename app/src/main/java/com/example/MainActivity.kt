@@ -23,6 +23,27 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+    // Request permissions for camera, audio, and foreground live notifications
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      requestPermissions(
+        arrayOf(
+          android.Manifest.permission.POST_NOTIFICATIONS,
+          android.Manifest.permission.CAMERA,
+          android.Manifest.permission.RECORD_AUDIO
+        ),
+        101
+      )
+    } else {
+      requestPermissions(
+        arrayOf(
+          android.Manifest.permission.CAMERA,
+          android.Manifest.permission.RECORD_AUDIO
+        ),
+        101
+      )
+    }
 
     // Configure global Coil ImageLoader with GIF and SVG support (.gif, .svg, .png, .jpg)
     val imageLoader = ImageLoader.Builder(this)

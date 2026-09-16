@@ -1,8 +1,11 @@
 package com.example.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.model.*
+import com.example.service.StudioBroadcastService
+import com.example.util.StudioPreferences
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +16,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class StudioViewModel : ViewModel() {
+class StudioViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val preferences = StudioPreferences(application)
 
     // Broadcasting & Recording State
     private val _isLive = MutableStateFlow(false)
@@ -27,6 +32,10 @@ class StudioViewModel : ViewModel() {
 
     private val _streamDurationSeconds = MutableStateFlow(0L)
     val streamDurationSeconds: StateFlow<Long> = _streamDurationSeconds.asStateFlow()
+
+    // Settings
+    private val _settings = MutableStateFlow(preferences.loadSettings())
+    val settings: StateFlow<StudioSettings> = _settings.asStateFlow()
 
     // Scenes & Transition
     private val defaultScenes = listOf(
@@ -93,7 +102,7 @@ class StudioViewModel : ViewModel() {
     private val _transitionDurationMs = MutableStateFlow(300)
     val transitionDurationMs: StateFlow<Int> = _transitionDurationMs.asStateFlow()
 
-    // Multi-Destination Streaming
+    // Multi-Destination Streaming (Twitch, YouTube, OK.ru, Telegram, Facebook, Custom)
     private val defaultDestinations = listOf(
         StreamDestination(
             id = "dest_twitch",
@@ -107,6 +116,20 @@ class StudioViewModel : ViewModel() {
             platform = DestinationPlatform.YOUTUBE,
             serverUrl = "rtmps://a.rtmp.youtube.com/live2",
             streamKey = "yt_live_kx89_4721_mqqb",
+            isEnabled = true
+        ),
+        StreamDestination(
+            id = "dest_okru",
+            platform = DestinationPlatform.OK_RU,
+            serverUrl = "rtmps://live-push.ok.ru/live/",
+            streamKey = "ok_live_push_8932_auth",
+            isEnabled = true
+        ),
+        StreamDestination(
+            id = "dest_telegram",
+            platform = DestinationPlatform.TELEGRAM,
+            serverUrl = "rtmps://live.telegram.org:443/live/",
+            streamKey = "tg_live_chan_983719_key",
             isEnabled = true
         ),
         StreamDestination(
@@ -125,11 +148,15 @@ class StudioViewModel : ViewModel() {
         )
     )
 
-    private val _destinations = MutableStateFlow(defaultDestinations)
+    private val _destinations = MutableStateFlow(
+        defaultDestinations.map { preferences.restoreDestination(it) }
+    )
     val destinations: StateFlow<List<StreamDestination>> = _destinations.asStateFlow()
 
     // Encoder Configuration
-    private val _encoderConfig = MutableStateFlow(EncoderConfig())
+    private val _encoderConfig = MutableStateFlow(
+        preferences.loadEncoderConfig() ?: EncoderConfig()
+    )
     val encoderConfig: StateFlow<EncoderConfig> = _encoderConfig.asStateFlow()
 
     // Chroma Key Filter Configuration
@@ -137,8 +164,14 @@ class StudioViewModel : ViewModel() {
     val chromaKeyConfig: StateFlow<ChromaKeyConfig> = _chromaKeyConfig.asStateFlow()
 
     // Custom Logo Configuration
-    private val _customLogoConfig = MutableStateFlow(CustomLogoConfig())
+    private val _customLogoConfig = MutableStateFlow(preferences.loadCustomLogo())
     val customLogoConfig: StateFlow<CustomLogoConfig> = _customLogoConfig.asStateFlow()
+
+    // Scrolling News / Broadcasting Inform Text Ticker
+    private val _scrollingTextConfig = MutableStateFlow(preferences.loadScrollingText())
+    val scrollingTextConfig: StateFlow<ScrollingTextConfig> = _scrollingTextConfig.asStateFlow()
+
+    private var watermarkCountdownJob: Job? = null
 
     // Telemetry & Hardware Stats
     private val _telemetry = MutableStateFlow(StudioTelemetry())
@@ -166,8 +199,13 @@ class StudioViewModel : ViewModel() {
     private val _isTorchOn = MutableStateFlow(false)
     val isTorchOn: StateFlow<Boolean> = _isTorchOn.asStateFlow()
 
-    private val _webCastUrl = MutableStateFlow("https://en.wikipedia.org/wiki/Open_Broadcaster_Software")
+    private val _webCastUrl = MutableStateFlow(
+        preferences.loadSavedWebCastUrl() ?: "https://en.wikipedia.org/wiki/Open_Broadcaster_Software"
+    )
     val webCastUrl: StateFlow<String> = _webCastUrl.asStateFlow()
+
+    private val _isWebCastFullScreen = MutableStateFlow(false)
+    val isWebCastFullScreen: StateFlow<Boolean> = _isWebCastFullScreen.asStateFlow()
 
     private val _mediaIsPlaying = MutableStateFlow(true)
     val mediaIsPlaying: StateFlow<Boolean> = _mediaIsPlaying.asStateFlow()
@@ -182,7 +220,38 @@ class StudioViewModel : ViewModel() {
     private var alertDismissJob: Job? = null
 
     init {
+        // Restore scene memory if enabled
+        preferences.loadSavedScene()?.let { savedId ->
+            defaultScenes.find { it.id == savedId }?.let { scene ->
+                _programScene.value = scene
+            }
+        }
+
+        // Setup notification action triggers
+        StudioBroadcastService.onNotificationActionTriggered = { action ->
+            when (action) {
+                StudioBroadcastService.ACTION_STOP_FROM_NOTIFICATION -> {
+                    if (_isLive.value) toggleLive()
+                }
+                StudioBroadcastService.ACTION_TOGGLE_MUTE_FROM_NOTIFICATION -> {
+                    toggleAudioMute("mic_aux")
+                }
+            }
+        }
+
         startTelemetrySimulation()
+    }
+
+    private fun formatDuration(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+        return String.format("%02d:%02d:%02d", hours, minutes, secs)
+    }
+
+    private fun getActiveDestinationsSummary(): String {
+        val enabled = _destinations.value.filter { it.isEnabled }.map { it.platform.platformName }
+        return if (enabled.isEmpty()) "No active platform" else enabled.joinToString(", ")
     }
 
     private fun startTelemetrySimulation() {
@@ -217,6 +286,19 @@ class StudioViewModel : ViewModel() {
                             }
                         }
                     }
+
+                    // Update background foreground notification
+                    if (_settings.value.backgroundLiveEnabled) {
+                        val isMicMuted = _audioTracks.value.find { it.id == "mic_aux" }?.isMuted ?: false
+                        StudioBroadcastService.updateService(
+                            context = getApplication(),
+                            duration = formatDuration(_streamDurationSeconds.value),
+                            bitrateKbps = jitterBitrate,
+                            destinations = getActiveDestinationsSummary(),
+                            isPopupLive = _settings.value.notificationPopupLive,
+                            isMuted = isMicMuted
+                        )
+                    }
                 } else {
                     _telemetry.value = _telemetry.value.copy(
                         bitrateKbps = 0,
@@ -225,7 +307,7 @@ class StudioViewModel : ViewModel() {
                     )
                 }
 
-                // Simulate slight audio meter fluctuation
+                // Audio meter fluctuation
                 _audioTracks.update { list ->
                     list.map { track ->
                         if (track.isMuted) {
@@ -257,11 +339,33 @@ class StudioViewModel : ViewModel() {
             _destinations.update { list ->
                 list.map { if (it.isEnabled) it.copy(isLive = true) else it }
             }
+
+            // Start foreground live broadcast service
+            if (_settings.value.backgroundLiveEnabled) {
+                val isMicMuted = _audioTracks.value.find { it.id == "mic_aux" }?.isMuted ?: false
+                StudioBroadcastService.startService(
+                    context = getApplication(),
+                    isLive = true,
+                    duration = "00:00:00",
+                    bitrateKbps = _encoderConfig.value.targetBitrateKbps,
+                    destinations = getActiveDestinationsSummary(),
+                    isPopupLive = _settings.value.notificationPopupLive,
+                    isMuted = isMicMuted
+                )
+            }
         } else {
             tickerJob?.cancel()
             _streamDurationSeconds.value = 0L
             _destinations.update { list ->
                 list.map { it.copy(isLive = false, currentBitrateKbps = 0, latencyMs = 0) }
+            }
+
+            // Stop foreground live broadcast service
+            StudioBroadcastService.stopService(getApplication())
+
+            // If scrolling text is not in permanent running mode, auto turn off when live ends
+            if (!_scrollingTextConfig.value.isPermanentRunning) {
+                _scrollingTextConfig.update { it.copy(isEnabled = false) }
             }
         }
     }
@@ -279,6 +383,7 @@ class StudioViewModel : ViewModel() {
             _previewScene.value = scene
         } else {
             _programScene.value = scene
+            preferences.saveCurrentScene(scene.id)
         }
     }
 
@@ -287,6 +392,7 @@ class StudioViewModel : ViewModel() {
         val current = _programScene.value
         _programScene.value = staged
         _previewScene.value = current
+        preferences.saveCurrentScene(staged.id)
     }
 
     fun setTransitionType(type: TransitionType) {
@@ -368,14 +474,31 @@ class StudioViewModel : ViewModel() {
     // Destinations Management
     fun toggleDestination(destId: String) {
         _destinations.update { list ->
-            list.map { if (it.id == destId) it.copy(isEnabled = !it.isEnabled) else it }
+            list.map {
+                if (it.id == destId) {
+                    val updated = it.copy(isEnabled = !it.isEnabled)
+                    preferences.saveDestination(updated)
+                    updated
+                } else it
+            }
         }
     }
 
     fun updateDestination(updated: StreamDestination) {
         _destinations.update { list ->
-            list.map { if (it.id == updated.id) updated else it }
+            list.map {
+                if (it.id == updated.id) {
+                    preferences.saveDestination(updated)
+                    updated
+                } else it
+            }
         }
+    }
+
+    // Settings Management
+    fun updateSettings(newSettings: StudioSettings) {
+        _settings.value = newSettings
+        preferences.saveSettings(newSettings)
     }
 
     // Chroma Key
@@ -383,14 +506,83 @@ class StudioViewModel : ViewModel() {
         _chromaKeyConfig.value = config
     }
 
-    // Custom Logo
+    // Custom Logo & Watermark
     fun updateCustomLogo(config: CustomLogoConfig) {
         _customLogoConfig.value = config
+        preferences.saveCustomLogo(config)
+        if (config.isCountdownEnabled) {
+            startWatermarkCountdown(config.countdownTotalSeconds, config.countdownNextText)
+        } else {
+            cancelWatermarkCountdown()
+        }
+    }
+
+    fun startWatermarkCountdown(seconds: Int, nextText: String) {
+        watermarkCountdownJob?.cancel()
+        _customLogoConfig.update {
+            it.copy(
+                isCountdownEnabled = true,
+                countdownTotalSeconds = seconds,
+                countdownRemainingSeconds = seconds,
+                countdownNextText = nextText,
+                isCountdownRunning = true
+            )
+        }
+        watermarkCountdownJob = viewModelScope.launch {
+            var remaining = seconds
+            while (isActive && remaining > 0) {
+                delay(1000)
+                remaining--
+                _customLogoConfig.update { it.copy(countdownRemainingSeconds = remaining) }
+            }
+            if (isActive && remaining <= 0) {
+                // Countdown reached 0: automatically change watermark text to next name!
+                _customLogoConfig.update {
+                    it.copy(
+                        watermarkText = nextText,
+                        isCountdownRunning = false,
+                        isCountdownEnabled = false,
+                        countdownRemainingSeconds = 0
+                    )
+                }
+                preferences.saveCustomLogo(_customLogoConfig.value)
+            }
+        }
+    }
+
+    fun cancelWatermarkCountdown() {
+        watermarkCountdownJob?.cancel()
+        _customLogoConfig.update {
+            it.copy(isCountdownRunning = false, isCountdownEnabled = false)
+        }
+    }
+
+    // Scrolling News / Broadcasting Inform Text Ticker
+    fun updateScrollingTextConfig(config: ScrollingTextConfig) {
+        _scrollingTextConfig.value = config
+        preferences.saveScrollingText(config)
+    }
+
+    fun toggleScrollingText() {
+        _scrollingTextConfig.update { current ->
+            val updated = current.copy(isEnabled = !current.isEnabled)
+            preferences.saveScrollingText(updated)
+            updated
+        }
+    }
+
+    fun setScrollingTextPermanentRunning(permanent: Boolean) {
+        _scrollingTextConfig.update { current ->
+            val updated = current.copy(isPermanentRunning = permanent)
+            preferences.saveScrollingText(updated)
+            updated
+        }
     }
 
     // Encoder Configuration
     fun updateEncoderConfig(config: EncoderConfig) {
         _encoderConfig.value = config
+        preferences.saveEncoderConfig(config)
         _telemetry.update {
             it.copy(
                 bitrateKbps = if (_isLive.value) config.targetBitrateKbps else 0,
@@ -434,6 +626,11 @@ class StudioViewModel : ViewModel() {
             url
         }
         _webCastUrl.value = sanitized
+        preferences.saveWebCastUrl(sanitized)
+    }
+
+    fun setWebCastFullScreen(fullScreen: Boolean) {
+        _isWebCastFullScreen.value = fullScreen
     }
 
     fun toggleMediaPlayback() {
@@ -480,5 +677,42 @@ class StudioViewModel : ViewModel() {
 
     fun toggleScreenCastGameMode() {
         _screenCastGameMode.update { !it }
+    }
+
+    // Restart Studio & Reset Memory to factory defaults
+    fun restartStudioResetMemory() {
+        if (_isLive.value) {
+            toggleLive()
+        }
+        if (_isRecording.value) {
+            _isRecording.value = false
+        }
+        preferences.clearAllMemory()
+
+        _scenes.value = defaultScenes
+        _programScene.value = defaultScenes[0]
+        _previewScene.value = defaultScenes[1]
+        _destinations.value = defaultDestinations
+        _encoderConfig.value = EncoderConfig()
+        _chromaKeyConfig.value = ChromaKeyConfig()
+        cancelWatermarkCountdown()
+        _customLogoConfig.value = CustomLogoConfig()
+        _scrollingTextConfig.value = ScrollingTextConfig()
+        _settings.value = StudioSettings()
+        _webCastUrl.value = "https://en.wikipedia.org/wiki/Open_Broadcaster_Software"
+        _mediaCastConfig.value = CustomMediaCastConfig()
+        _audioTracks.value = listOf(
+            AudioTrack("mic_aux", "Mic / Audio In", volume = 1.0f, isMuted = false, peakDb = -14f),
+            AudioTrack("desktop_sys", "Desktop / Screen Audio", volume = 0.85f, isMuted = false, peakDb = -18f),
+            AudioTrack("media_player", "Media / Video Source", volume = 0.70f, isMuted = false, peakDb = -22f),
+            AudioTrack("alert_sfx", "Viewer Alert SFX", volume = 0.90f, isMuted = false, peakDb = -10f)
+        )
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        tickerJob?.cancel()
+        alertDismissJob?.cancel()
+        watermarkCountdownJob?.cancel()
     }
 }

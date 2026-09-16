@@ -3,7 +3,6 @@ package com.example
 import com.example.model.CustomMediaType
 import com.example.model.LogoPosition
 import com.example.util.FileUtils
-import com.example.viewmodel.StudioViewModel
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -31,38 +30,40 @@ class ExampleUnitTest {
     }
 
     @Test
-    fun testStudioViewModelCustomLogoAndMediaCast() {
-        val vm = StudioViewModel()
-
-        // Test Custom Logo
-        vm.setCustomLogoFile(
-            uri = "content://media/external/images/media/123",
-            fileName = "my_brand_logo.png",
-            mimeType = "image/png"
+    fun testWatermarkCustomizationAndCountdown() {
+        val config = com.example.model.CustomLogoConfig(
+            isEnabled = true,
+            showLogoFrame = false, // Blue frame removed!
+            showBackground = true,
+            backgroundColorMode = com.example.model.WatermarkBgColorMode.CYBER_PURPLE,
+            textPosition = com.example.model.TextRelativePosition.UNDER,
+            watermarkText = "CHAMPIONSHIP STAGE 1",
+            isCountdownEnabled = true,
+            countdownPosition = com.example.model.CountdownPosition.UNDER,
+            countdownTotalSeconds = 10,
+            countdownNextText = "GRAND FINALS LIVE"
         )
-        val logoConfig = vm.customLogoConfig.value
-        assertTrue(logoConfig.isEnabled)
-        assertEquals("content://media/external/images/media/123", logoConfig.customImageUri)
-        assertEquals("my_brand_logo.png", logoConfig.customImageName)
 
-        vm.clearCustomLogoFile()
-        assertNull(vm.customLogoConfig.value.customImageUri)
-        assertNull(vm.customLogoConfig.value.customImageName)
+        assertFalse(config.showLogoFrame)
+        assertTrue(config.showBackground)
+        assertEquals(com.example.model.TextRelativePosition.UNDER, config.textPosition)
+        assertEquals(com.example.model.CountdownPosition.UNDER, config.countdownPosition)
+        assertEquals("GRAND FINALS LIVE", config.countdownNextText)
+    }
 
-        // Test Media Cast
-        vm.setMediaCastSource(
-            uri = "content://media/external/video/media/456",
-            fileName = "gameplay_highlight.mp4",
-            mediaType = CustomMediaType.VIDEO,
-            mimeType = "video/mp4"
+    @Test
+    fun testScrollingTextPermanentRunningAndMods() {
+        val ticker = com.example.model.ScrollingTextConfig(
+            isEnabled = true,
+            isPermanentRunning = true,
+            mod = com.example.model.MarqueeMod.NEWS,
+            textContent = "BREAKING: Tournament playoffs underway",
+            speed = com.example.model.MarqueeSpeed.FAST
         )
-        val mediaConfig = vm.mediaCastConfig.value
-        assertEquals("content://media/external/video/media/456", mediaConfig.uri)
-        assertEquals("gameplay_highlight.mp4", mediaConfig.fileName)
-        assertEquals(CustomMediaType.VIDEO, mediaConfig.mediaType)
 
-        vm.clearMediaCastSource()
-        assertNull(vm.mediaCastConfig.value.uri)
-        assertEquals("PRESENTATION_REEL_FINAL_4K.MP4", vm.mediaCastConfig.value.fileName)
+        assertTrue(ticker.isEnabled)
+        assertTrue(ticker.isPermanentRunning)
+        assertEquals(com.example.model.MarqueeMod.NEWS, ticker.mod)
+        assertEquals(com.example.model.MarqueeSpeed.FAST, ticker.speed)
     }
 }

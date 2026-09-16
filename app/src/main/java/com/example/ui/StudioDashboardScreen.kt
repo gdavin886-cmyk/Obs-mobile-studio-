@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,6 +61,7 @@ fun StudioDashboardScreen(
     val encoderConfig by viewModel.encoderConfig.collectAsStateWithLifecycle()
     val chromaKeyConfig by viewModel.chromaKeyConfig.collectAsStateWithLifecycle()
     val customLogoConfig by viewModel.customLogoConfig.collectAsStateWithLifecycle()
+    val scrollingTextConfig by viewModel.scrollingTextConfig.collectAsStateWithLifecycle()
     val mediaCastConfig by viewModel.mediaCastConfig.collectAsStateWithLifecycle()
 
     val telemetry by viewModel.telemetry.collectAsStateWithLifecycle()
@@ -70,13 +72,16 @@ fun StudioDashboardScreen(
     val isTorchOn by viewModel.isTorchOn.collectAsStateWithLifecycle()
     val webCastUrl by viewModel.webCastUrl.collectAsStateWithLifecycle()
     val mediaIsPlaying by viewModel.mediaIsPlaying.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     // Dialog Visibility States
     var showChromaKeyDialog by remember { mutableStateOf(false) }
     var showDestinationsDialog by remember { mutableStateOf(false) }
     var showAlertSimulator by remember { mutableStateOf(false) }
     var showLogoDialog by remember { mutableStateOf(false) }
+    var showScrollingTextDialog by remember { mutableStateOf(false) }
     var showWebCastDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     // Media Picker launcher from device storage (video or image)
     val mediaPickerLauncher = rememberLauncherForActivityResult(
@@ -119,7 +124,8 @@ fun StudioDashboardScreen(
                 onToggleRecording = { viewModel.toggleRecording() },
                 onToggleStudioMode = { viewModel.toggleStudioMode() },
                 onOpenDestinations = { showDestinationsDialog = true },
-                onOpenAlertSimulator = { showAlertSimulator = true }
+                onOpenAlertSimulator = { showAlertSimulator = true },
+                onOpenSettings = { showSettingsDialog = true }
             )
 
             // Scrollable Broadcast Canvas & Control Deck
@@ -201,6 +207,9 @@ fun StudioDashboardScreen(
                         mediaCastConfig = mediaCastConfig,
                         onUploadMediaClick = { mediaPickerLauncher.launch("*/*") },
                         onClearMediaClick = { viewModel.clearMediaCastSource() },
+                        scrollingTextConfig = scrollingTextConfig,
+                        onToggleScrollingText = { viewModel.toggleScrollingText() },
+                        onOpenScrollingTextDialog = { showScrollingTextDialog = true },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -218,13 +227,14 @@ fun StudioDashboardScreen(
                     onSelectTransition = { viewModel.setTransitionType(it) }
                 )
 
-                // Sources & Filter Manager (with quick filter buttons for Chroma, Custom Logo, and Media Upload)
+                // Sources & Filter Manager (with quick filter buttons for Chroma, Custom Logo, Media Upload, and Ticker)
                 SourcesLayerPanel(
                     sources = programScene.sources,
                     onToggleVisibility = { viewModel.toggleSourceVisibility(it) },
                     onToggleLock = { viewModel.toggleSourceLock(it) },
                     onOpenChromaKey = { showChromaKeyDialog = true },
                     onOpenLogoEditor = { showLogoDialog = true },
+                    onOpenTickerEditor = { showScrollingTextDialog = true },
                     onSwitchCamera = { viewModel.switchCamera() },
                     onToggleTorch = { viewModel.toggleTorch() },
                     isTorchOn = isTorchOn,
@@ -341,28 +351,87 @@ fun StudioDashboardScreen(
                     }
                 }
 
-                // If currently on Web Cast scene, show quick Web URL bar
+                // If currently on Web Cast scene, show quick Web URL bar & Fullscreen launch
                 if (programScene.id == SceneId.WEB_CAST) {
-                    Button(
-                        onClick = { showWebCastDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = StudioSurfaceVariant
-                        ),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = { showWebCastDialog = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = StudioSurfaceVariant
+                            ),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = StudioCyan
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "CURRENT WEB CAST: $webCastUrl (TAP TO CHANGE)",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // Quick Studio Bar: Settings & Restart Studio Memory Reset
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { showSettingsDialog = true },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = StudioCyan),
+                        border = BorderStroke(1.dp, StudioCyan),
                         shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .testTag("dashboard_settings_btn")
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Language,
+                            imageVector = Icons.Default.Settings,
                             contentDescription = null,
-                            tint = StudioCyan
+                            tint = StudioCyan,
+                            modifier = Modifier.size(16.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "CURRENT WEB CAST: $webCastUrl (TAP TO CHANGE)",
-                            color = Color.White,
+                            text = "Studio Settings",
                             fontSize = 11.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.restartStudioResetMemory() },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = StudioRecRed),
+                        border = BorderStroke(1.dp, StudioRecRed.copy(alpha = 0.7f)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(38.dp)
+                            .testTag("dashboard_restart_studio_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RestartAlt,
+                            contentDescription = null,
+                            tint = StudioRecRed,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Reset Memory",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -411,7 +480,19 @@ fun StudioDashboardScreen(
         CustomLogoDialog(
             config = customLogoConfig,
             onSave = { viewModel.updateCustomLogo(it) },
+            onStartCountdown = { sec, nextText ->
+                viewModel.startWatermarkCountdown(sec, nextText)
+            },
             onDismiss = { showLogoDialog = false }
+        )
+    }
+
+    if (showScrollingTextDialog) {
+        ScrollingTextDialog(
+            config = scrollingTextConfig,
+            isLive = isLive,
+            onSave = { viewModel.updateScrollingTextConfig(it) },
+            onDismiss = { showScrollingTextDialog = false }
         )
     }
 
@@ -420,6 +501,39 @@ fun StudioDashboardScreen(
             currentUrl = webCastUrl,
             onSaveUrl = { viewModel.setWebCastUrl(it) },
             onDismiss = { showWebCastDialog = false }
+        )
+    }
+
+    if (showSettingsDialog) {
+        StudioSettingsDialog(
+            settings = settings,
+            encoderConfig = encoderConfig,
+            destinations = destinations,
+            isLive = isLive,
+            onUpdateSettings = { viewModel.updateSettings(it) },
+            onUpdateEncoder = { viewModel.updateEncoderConfig(it) },
+            onToggleDestination = { viewModel.toggleDestination(it) },
+            onOpenDestinationsFull = {
+                showSettingsDialog = false
+                showDestinationsDialog = true
+            },
+            onOpenWebCastFullScreen = {
+                showSettingsDialog = false
+                val webScene = scenes.find { it.id == SceneId.WEB_CAST }
+                if (webScene != null) viewModel.selectScene(webScene)
+            },
+            onRestartStudioResetMemory = {
+                viewModel.restartStudioResetMemory()
+            },
+            onOpenLogoSettings = {
+                showSettingsDialog = false
+                showLogoDialog = true
+            },
+            onOpenTickerSettings = {
+                showSettingsDialog = false
+                showScrollingTextDialog = true
+            },
+            onDismiss = { showSettingsDialog = false }
         )
     }
 }

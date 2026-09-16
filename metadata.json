@@ -1,6 +1,6 @@
 {
   "name": "OBS Studio Mobile",
-  "description": "Live broadcast and streaming studio featuring multi-source casting (camera, screen, website, media), scene switching, chroma key filter, multiple RTMPS stream output destinations, and alert overlays.",
+  "description": "Mobile live broadcast & production studio featuring multi-source casting (camera, screen, web, media), multi-destination streaming (Twitch, YouTube, OK.ru, Telegram), custom watermark branding with countdown auto-text transition, and real-time animated scrolling ticker marquee.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

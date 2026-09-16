@@ -44,6 +44,9 @@ fun ProgramMonitorView(
     mediaCastConfig: CustomMediaCastConfig = CustomMediaCastConfig(),
     onUploadMediaClick: () -> Unit = {},
     onClearMediaClick: () -> Unit = {},
+    scrollingTextConfig: ScrollingTextConfig? = null,
+    onToggleScrollingText: () -> Unit = {},
+    onOpenScrollingTextDialog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     // Studio Tally Border: Red when Live, Amber when in Preview mode, Cyan/Green when idle
@@ -182,6 +185,22 @@ fun ProgramMonitorView(
 
         // Custom Logo Watermark
         CustomLogoWatermarkView(config = customLogoConfig)
+
+        // Scrolling News / Broadcasting Inform Text Ticker (Pinned along bottom)
+        if (scrollingTextConfig != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            ) {
+                ScrollingTextTickerView(
+                    config = scrollingTextConfig,
+                    isLive = isLive,
+                    onToggleEnabled = onToggleScrollingText,
+                    onOpenEditDialog = onOpenScrollingTextDialog
+                )
+            }
+        }
 
         // Pop-up Engagement Alert Box Overlay (Triggered by viewer engagement)
         Box(

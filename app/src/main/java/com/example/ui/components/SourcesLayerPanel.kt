@@ -30,6 +30,7 @@ fun SourcesLayerPanel(
     onToggleLock: (String) -> Unit,
     onOpenChromaKey: () -> Unit,
     onOpenLogoEditor: () -> Unit,
+    onOpenTickerEditor: () -> Unit = {},
     onSwitchCamera: () -> Unit,
     onToggleTorch: () -> Unit,
     isTorchOn: Boolean,
@@ -171,7 +172,7 @@ fun SourcesLayerPanel(
                 onClick = onOpenMediaPicker,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1B4B)),
                 border = androidx.compose.foundation.BorderStroke(1.dp, StudioPurple),
-                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(6.dp),
                 modifier = Modifier
                     .weight(1f)
@@ -184,10 +185,38 @@ fun SourcesLayerPanel(
                     tint = StudioPurple,
                     modifier = Modifier.size(13.dp)
                 )
-                Spacer(modifier = Modifier.width(3.dp))
+                Spacer(modifier = Modifier.width(2.dp))
                 Text(
                     text = "MEDIA",
                     color = StudioPurple,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            // Quick Ticker: Scrolling News / Inform
+            Button(
+                onClick = onOpenTickerEditor,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1C1917)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, StudioAmber),
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(32.dp)
+                    .testTag("open_ticker_editor_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Campaign,
+                    contentDescription = "Scrolling Ticker",
+                    tint = StudioAmber,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Text(
+                    text = "TICKER",
+                    color = StudioAmber,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace

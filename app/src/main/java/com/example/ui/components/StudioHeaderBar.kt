@@ -44,6 +44,7 @@ fun StudioHeaderBar(
     onToggleStudioMode: () -> Unit,
     onOpenDestinations: () -> Unit,
     onOpenAlertSimulator: () -> Unit,
+    onOpenSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val durationFormatted = remember(durationSeconds) {
@@ -180,6 +181,26 @@ fun StudioHeaderBar(
                 Icon(
                     imageVector = Icons.Default.CloudUpload,
                     contentDescription = "Stream Output Destinations",
+                    tint = StudioCyan,
+                    modifier = Modifier.size(17.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // Studio Settings & Memory Controls
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(StudioCardBg)
+                    .border(1.dp, StudioCyan.copy(alpha = 0.6f), CircleShape)
+                    .testTag("open_settings_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Studio Settings & Background Service",
                     tint = StudioCyan,
                     modifier = Modifier.size(17.dp)
                 )

@@ -1,5 +1,14 @@
 # 📡 OBS Studio Mobile
 
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-September%2016%2C%202026-brightgreen.svg)](https://github.com)
+[![Platform](https://img.shields.io/badge/Platform-Android-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> **Last Updated:** September 16, 2026 • **Version:** 2.4.0 (Latest Release)
+
 A powerful **OBS Studio-inspired mobile broadcasting application for Android**, built with **Kotlin + Jetpack Compose**, designed to turn an Android phone into a portable live production studio.
 
 Capture your **camera, mobile screen, websites, videos, and images**, compose them into professional scenes, apply chroma-key effects and branded overlays, and publish live broadcasts to multiple RTMPS destinations such as **Twitch, YouTube Live, Facebook Live, and custom RTMPS servers**.
@@ -199,31 +208,67 @@ Custom Video
 
 ---
 
-# 🖼️ Custom Logo & Branding
+# 🖼️ Custom Logo, Watermark & Branding
 
-Add your own branding directly to the broadcast.
+Add your own channel branding directly to the broadcast with professional overlay controls.
 
-Features:
+### ✨ Advanced Watermark Features
 
-* Custom logo
-* Watermark
-* Channel name
-* Social media handle
-* Adjustable opacity
-* Adjustable scale
-* Corner positioning
-
-Supported positions:
+* **Clean Borderless Mode**: Default blue frame boundary removed for a sleek, broadcast-grade aesthetic. Subtle border toggle available.
+* **Custom Logo Upload**: Choose custom images from device storage (`.png`, `.svg`, `.jpg`, `.gif`) via Android Photo Picker.
+* **Watermark Background Styling**:
+  * **On/Off Toggle**: Switch between completely transparent alpha and stylish backdrop cards.
+  * **Preset Color Palettes**:
+    * 🌑 *Dark Glass Tint* (`#990A0D14`)
+    * ⬛ *Solid Broadcast Black* (`#FF090D16`)
+    * 💎 *Studio Cyan Accent* (`#99002B36`)
+    * 🟣 *Cyber Neon Purple* (`#992E1065`)
+    * 🎨 *Custom Hex Color*
+* **Dynamic Text Alignment Relative to Logo**:
+  * `UNDER`: Text displays directly underneath the logo icon
+  * `LEFT`: Text displays to the left of the logo
+  * `TOP`: Text displays above the logo
+  * `RIGHT`: Text displays to the right of the logo
+* **Countdown Timer & Automatic Next Name Switch**:
+  * **Placement**: Position the timer `UNDER`, `LEFT`, `TOP`, `RIGHT`, or `INSIDE` the logo badge.
+  * **Duration Presets**: 15s, 30s, 60s, 120s, 300s, or custom duration.
+  * **Auto Name Switch**: When the countdown reaches `00:00`, the watermark automatically switches its text to the configured *Next Name* (e.g., from "MATCH 1 STARTING" to "CHAMPIONSHIP LIVE") without interrupting the stream!
+* **Scale & Opacity**: Adjustable size (10% to 50% of screen) and transparency (10% to 100%).
+* **Corner Positioning**: Top-Left, Top-Right, Bottom-Left, Bottom-Right.
 
 ```text
 ┌─────────────────────────────┐
-│ LOGO                    LOGO│
+│ [LOGO] Stream Title    LOGO │
+│ ⏱️ 00:45                    │
 │                             │
 │                             │
-│                             │
-│ LOGO                    LOGO│
+│ LOGO                   LOGO │
 └─────────────────────────────┘
 ```
+
+---
+
+# 📢 Animated Scrolling News & Inform Ticker (Marquee)
+
+A real-time, animated lower-third marquee pinned to the bottom of the broadcast program output.
+
+### Features:
+
+* **Broadcast Marquee Animation**: Smooth, hardware-accelerated horizontal text crawling.
+* **Content Modes & Color Badges**:
+  * 🔴 **BREAKING NEWS**: Urgent alert badge with high-contrast red theme.
+  * 📢 **BROADCAST INFORM**: Official studio announcements with cyan styling.
+  * ⭐ **SPONSOR & INFO**: Partner shout-outs and socials in emerald green.
+  * ⚡ **LIVE URGENT**: Attention-grabbing emergency notice in neon amber.
+  * 📌 **CUSTOM BULLETIN**: Flexible channel notices in vibrant violet.
+* **Crawl Speeds**:
+  * 🐢 **Slow** (35ms step interval) — best for long descriptive paragraphs.
+  * 📺 **Standard** (20ms step interval) — standard television broadcast crawl.
+  * 🐇 **Fast** (10ms step interval) — rapid ticker updates.
+* **Playback Automation**:
+  * **Permanent Running Mode**: When enabled, the marquee continues running continuously at all times.
+  * **Live-Only Automation**: When Permanent Running is turned off, the ticker automatically deactivates when the broadcast ends.
+* **Quick Access**: Toggle or customize directly from the studio bottom bar or the **TICKER** quick-button in the layer sources panel.
 
 ---
 
@@ -294,29 +339,38 @@ Features:
 
 # 📡 Multi-Destination Streaming
 
-Publish to multiple streaming platforms simultaneously.
+Publish to multiple streaming platforms simultaneously with independent bitrate, URL, and stream key management.
 
-Supported destination types:
+### Supported Destination Types:
+
+* 🟣 **Twitch** (`rtmp://live.twitch.tv/app/`)
+* 🔴 **YouTube Live** (`rtmp://a.rtmp.youtube.com/live2`)
+* 🟠 **OK.ru / Odnoklassniki Live** (`rtmp://live.ok.ru/live/`)
+* ✈️ **Telegram Live Stream** (`rtmp://live.telegram.org/stream/`)
+* 🔵 **Facebook Live** (`rtmps://live-api-s.facebook.com:443/rtmp/`)
+* 🟢 **Kick & Custom RTMPS Servers** (`rtmps://your-custom-ingest/live/`)
+
+Example Architecture:
 
 ```text
-Twitch
-YouTube Live
-Facebook Live
-Custom RTMPS
-Kick ,etc
+                  ┌── 🟣 Twitch
+                  │
+                  ├── 🔴 YouTube Live
+                  │
+Android Encoder ──┼── 🟠 OK.ru Live
+(MediaCodec HW)   │
+                  ├── ✈️ Telegram Live
+                  │
+                  ├── 🔵 Facebook Live
+                  │
+                  └── 🌐 Custom RTMPS
 ```
 
-Example:
+### Foreground Broadcast Service (`StudioBroadcastService`):
 
-```text
-                  ┌── Twitch
-                  │
-Android Encoder ─┼──  YouTube Live
-                  │
-                  ├── Facebook Live
-                  │
-                  └── Custom RTMPS
-```
+* Operates as an active Android Foreground Service with persistent status notification.
+* Continues streaming without interruption if the user navigates between applications or temporarily locks the device screen.
+* Independent status badges for each destination (Online, Disconnected, Reconnecting).
 
 Each destination should maintain its own:
 
@@ -964,28 +1018,134 @@ The goal of **OBS Studio Mobile** is to provide creators with a portable product
 
 into one Android-based live production workflow.
 
-**Turn your Android device into a portable live broadcasting studio. 📡🎥📱**
-Studio Mode: Dual-monitor workflow allowing you to stage scenes in Preview before triggering Cut or Fade transitions to the Live Program.
-Instant Scene Carousel: Switch between 5 broadcasting scenes:
-🎬 Camera + Chroma Key: CameraX video feed composited over a virtual studio room.
-📱 Mobile Screen Casting: Screen capture with game simulation and a Picture-in-Picture (PiP) facecam.
-🌐 Website Page Casting: Real interactive WebView for streaming websites, live tickers, or Twitch chat popouts.
-📼 File Video & Media Casting: Video reel player with playback scrubbers and broadcast lower-third graphics.
-⏱️ Starting Soon / BRB: Pulsating standby scene with social media handles and encoder status.
-Chroma Keying Filter for Green Screen Backgrounds:
-Key color selection with presets for Green Screen (#00FF00), Blue Screen (#0000FF), and Magenta.
-Granular control over Similarity Threshold, Edge Smoothness, and Color Spill Reduction.
-Background compositing with options for Virtual Studio Room, Solid Dark Surface, or Transparent Alpha.
-Custom Logo Watermark & Overlays:
-Dedicated watermark overlay supporting corner positioning (Top-Left, Top-Right, Bottom-Left, Bottom-Right).
-Adjustable size scaling, opacity levels, and custom channel branding text.
-Multi-Destination RTMPS & Hardware Encoding:
-Simultaneous multi-output publishing to Twitch, YouTube Live, Facebook Live, and Custom RTMPS.
-Hardware encoding pipeline configuring MediaCodec H.264 (HW), MediaCodec HEVC/H.265 (HW), and AV1 (HW).
-Resolution and framerate profiles (1080p 60FPS, 1080p 30FPS, 720p 60FPS, 4K) with a 1,000–12,000 kbps bitrate fader and a Low-Latency Streaming (LL-HLS / RTMPS) toggle.
-Viewer Engagement Pop-Up Video Overlays:
-Animated alert overlays triggered by stream events with glowing badges, donor avatars, sound indicators, and personalized chat messages.
-Built-in event triggers for New Followers, Tier 1 Subscribers, $100 Super Chats, Viewer Raids, and Community Gift Subs, plus a custom event builder.
-Studio Audio Mixer & Telemetry Deck:
-4-channel audio console (Microphone, Screen Audio, Media Player, Alert SFX) with dynamic VU meters, peak hold indicators, volume faders, and mute buttons.
-Live broadcast telemetry monitoring real-time FPS, kbps bitrate, dropped frame rate percentage, RTMPS latency (ms), and hardware encoder status.
+---
+
+# 🚀 How to Upload & Push This Project to GitHub
+
+You can export and upload this complete project to your own GitHub repository using either the **Google AI Studio Export** or the **Git Command Line**.
+
+### Method 1: Push via Git Terminal (Recommended)
+
+1. **Create a new empty repository** on GitHub (e.g. `https://github.com/YOUR_USERNAME/obs-studio-mobile`). Do not initialize it with a README or .gitignore (as this project already includes them).
+
+2. **Open your terminal** in the project root directory and initialize Git:
+   ```bash
+   # Initialize git repository
+   git init
+
+   # Set default branch to main
+   git branch -M main
+
+   # Add all files to staging
+   git add .
+
+   # Create initial commit with descriptive message
+   git commit -m "feat: initial commit of OBS Studio Mobile live broadcasting studio v2.4.0"
+   ```
+
+3. **Link your remote GitHub repository**:
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/obs-studio-mobile.git
+   ```
+
+4. **Push your code to GitHub**:
+   ```bash
+   git push -u origin main
+   ```
+
+5. **Future updates & pushes**:
+   Whenever you make modifications:
+   ```bash
+   git add .
+   git commit -m "feat: updated watermark countdown and scrolling ticker overlay"
+   git push
+   ```
+
+---
+
+### Method 2: Export from Google AI Studio
+
+1. In the **Google AI Studio** top-right navigation bar, click the **Settings / More Options (⋮)** menu.
+2. Select **"Push to GitHub"** to automatically connect your GitHub account and push this project directly into a new or existing repository.
+3. Alternatively, choose **"Download as ZIP"**, unzip the files on your computer, and push using your preferred Git GUI client (GitHub Desktop, GitKraken, VS Code, Android Studio).
+
+---
+
+### 🛡️ Pre-Upload Verification Checklist
+
+Before pushing to a public repository:
+- [x] `.env` and sensitive API keys are ignored by `.gitignore`.
+- [x] Stream keys (`STREAM_KEY`) and passwords are never hardcoded in source code.
+- [x] `debug.keystore` and `debug.keystore.base64` are excluded via `.gitignore`.
+- [x] Build output folders (`/build`, `.gradle`, `.externalNativeBuild`) are excluded.
+
+---
+
+### 🤖 Automated GitHub Actions CI (Optional)
+
+You can add `.github/workflows/android.yml` to automatically build your APK on every push:
+
+```yaml
+name: Android CI Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: obs-studio-mobile-debug-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+```
+
+---
+
+# 📋 Changelog (v2.4.0 - Latest Release)
+
+* **🖼️ Watermark Branding & Countdown**:
+  * Removed default blue frame for clean borderless presentation.
+  * Added watermark background on/off toggle with preset palettes (Dark Glass, Broadcast Black, Studio Cyan, Cyber Purple, Custom Hex).
+  * Dynamic relative text positioning (`UNDER`, `LEFT`, `TOP`, `RIGHT`).
+  * Relative countdown positioning (`UNDER`, `LEFT`, `TOP`, `RIGHT`, `INSIDE`).
+  * Automated Next Name switch upon countdown expiry (00:00).
+* **📢 Animated Scrolling News & Inform Ticker**:
+  * Real-time lower-third marquee pinned to broadcast output.
+  * Presets: Breaking News, Broadcast Inform, Sponsor & Info, Live Urgent, Custom Bulletin.
+  * Multi-speed TV crawl engine (Slow, Standard, Fast).
+  * Permanent Running 24/7 mode vs. Live-only auto-deactivation.
+* **📡 Expanded Multi-Destination Streaming**:
+  * Added instant presets for **Twitch**, **YouTube Live**, **OK.ru (Odnoklassniki Live)**, **Telegram Live**, **Facebook Live**, and Custom RTMPS.
+  * Android Foreground Service (`StudioBroadcastService`) ensuring uninterrupted background broadcasting.
+* **🎬 Dual-Monitor Studio Mode**:
+  * Preview monitor, Cut & Fade transitions, and Program output live feed.
+* **📱 Multi-Source Casting**:
+  * CameraX + Chroma Key (Green/Blue/Magenta screen).
+  * Mobile Screen Capture + Facecam PiP.
+  * Interactive Website WebView casting.
+  * Media file reel player.
+  * Standby Starting Soon / BRB scene.
+* **🎚️ 4-Channel Audio Mixer & Telemetry Deck**:
+  * Microphone, Screen Audio, Media, and Alert SFX channels with VU meters.
+  * Real-time FPS, kbps bitrate, frame drop %, and latency monitoring.

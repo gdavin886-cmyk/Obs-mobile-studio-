@@ -38,9 +38,22 @@ data class StudioScene(
 enum class DestinationPlatform(val platformName: String, val defaultUrl: String) {
     TWITCH("Twitch", "rtmps://live.twitch.tv/app/"),
     YOUTUBE("YouTube Live", "rtmps://a.rtmp.youtube.com/live2"),
+    OK_RU("OK.ru (Odnoklassniki)", "rtmps://live-push.ok.ru/live/"),
+    TELEGRAM("Telegram Live", "rtmps://live.telegram.org:443/live/"),
     FACEBOOK("Facebook Live", "rtmps://live-api-s.facebook.com:443/rtmp/"),
     CUSTOM_RTMPS("Custom RTMPS", "rtmps://custom.server.com:443/live/")
 }
+
+data class StudioSettings(
+    val backgroundLiveEnabled: Boolean = true,
+    val notificationPopupLive: Boolean = true,
+    val keepScreenAwake: Boolean = true,
+    val autoReconnect: Boolean = true,
+    val retainMemoryOnOpen: Boolean = true,
+    val webTouchInteractive: Boolean = true,
+    val audioSampleRateHz: Int = 48000,
+    val audioBitrateKbps: Int = 160
+)
 
 data class StreamDestination(
     val id: String,
@@ -101,6 +114,30 @@ enum class LogoPosition(val label: String) {
     BOTTOM_RIGHT("Bottom Right")
 }
 
+enum class TextRelativePosition(val label: String) {
+    RIGHT("Right of Logo"),
+    LEFT("Left of Logo"),
+    TOP("Top / Above Logo"),
+    UNDER("Under / Below Logo")
+}
+
+enum class CountdownPosition(val label: String) {
+    UNDER("Under Logo"),
+    LEFT("Left of Logo"),
+    TOP("Top / Above Logo"),
+    RIGHT("Right of Logo"),
+    INSIDE("Inside Logo Badge")
+}
+
+enum class WatermarkBgColorMode(val label: String, val hexCode: String) {
+    TRANSPARENT("Transparent (No Background)", "transparent"),
+    DARK_GLASS("Dark Glass Tint", "#990A0D14"),
+    SOLID_BLACK("Solid Broadcast Black", "#FF090D16"),
+    STUDIO_CYAN("Studio Cyan Accent", "#99002B36"),
+    CYBER_PURPLE("Neon Purple Tone", "#992E1065"),
+    CUSTOM("Custom Color", "#334155")
+}
+
 data class CustomLogoConfig(
     val isEnabled: Boolean = true,
     val position: LogoPosition = LogoPosition.TOP_RIGHT,
@@ -108,9 +145,48 @@ data class CustomLogoConfig(
     val opacity: Float = 0.90f,
     val watermarkText: String = "LIVE BROADCAST",
     val showTextLabel: Boolean = true,
+    val textPosition: TextRelativePosition = TextRelativePosition.RIGHT,
     val customImageUri: String? = null,
     val customImageName: String? = null,
-    val customImageMimeType: String? = null
+    val customImageMimeType: String? = null,
+    // Frame and Background styling (Blue frame removed!)
+    val showLogoFrame: Boolean = false,
+    val showBackground: Boolean = true,
+    val backgroundColorMode: WatermarkBgColorMode = WatermarkBgColorMode.DARK_GLASS,
+    val customBgColorHex: String = "#1E293B",
+    // Countdown Timer setup
+    val isCountdownEnabled: Boolean = false,
+    val countdownTotalSeconds: Int = 60,
+    val countdownRemainingSeconds: Int = 60,
+    val countdownPosition: CountdownPosition = CountdownPosition.UNDER,
+    val countdownNextText: String = "STREAM ON AIR",
+    val isCountdownRunning: Boolean = false
+)
+
+enum class MarqueeSpeed(val label: String, val speedMs: Long) {
+    SLOW("Slow (Relaxed Reading)", 35L),
+    NORMAL("Standard (TV Broadcast Crawl)", 20L),
+    FAST("Fast (Urgent News Alert)", 10L)
+}
+
+enum class MarqueeMod(val label: String, val prefixTag: String, val badgeColorHex: String) {
+    NEWS("Breaking News", "🔴 BREAKING NEWS", "#EF4444"),
+    BROADCAST_INFORM("Broadcast Inform", "📢 BROADCAST INFORM", "#00E5FF"),
+    SPONSOR("Sponsor / Socials", "⭐ SPONSOR & INFO", "#10B981"),
+    ALERT("Live Urgent Notice", "⚡ LIVE URGENT", "#F59E0B"),
+    CUSTOM("Custom Marquee", "📌 LIVE BULLETIN", "#8B5CF6")
+}
+
+data class ScrollingTextConfig(
+    val isEnabled: Boolean = true,
+    val isPermanentRunning: Boolean = false,
+    val textContent: String = "WELCOME TO THE STREAM! Multi-destination broadcasting active across Twitch, YouTube, OK.ru and Telegram. Like and follow for updates!",
+    val mod: MarqueeMod = MarqueeMod.BROADCAST_INFORM,
+    val speed: MarqueeSpeed = MarqueeSpeed.NORMAL,
+    val backgroundColorHex: String = "#E60A0E1A",
+    val textColorHex: String = "#FFFFFF",
+    val showPrefixBadge: Boolean = true,
+    val fontSizeSp: Int = 11
 )
 
 enum class CustomMediaType(val label: String) {

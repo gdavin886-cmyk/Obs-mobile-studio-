@@ -366,6 +366,8 @@ private fun DestinationCard(
     val platformColor = when (destination.platform) {
         DestinationPlatform.TWITCH -> TwitchPurple
         DestinationPlatform.YOUTUBE -> YouTubeRed
+        DestinationPlatform.OK_RU -> Color(0xFFEE8208) // OK.ru Orange
+        DestinationPlatform.TELEGRAM -> Color(0xFF24A1DE) // Telegram Blue
         DestinationPlatform.FACEBOOK -> FacebookBlue
         DestinationPlatform.CUSTOM_RTMPS -> RtmpsGold
     }
