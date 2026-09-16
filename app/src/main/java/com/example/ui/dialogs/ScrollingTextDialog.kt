@@ -27,9 +27,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.Image
 import com.example.model.MarqueeMod
 import com.example.model.MarqueeSpeed
 import com.example.model.ScrollingTextConfig
+import com.example.model.TickerBackgroundStyle
 import com.example.ui.theme.*
 
 @Composable
@@ -46,6 +50,18 @@ fun ScrollingTextDialog(
     var selectedSpeed by remember { mutableStateOf(config.speed) }
     var showPrefixBadge by remember { mutableStateOf(config.showPrefixBadge) }
     var backgroundColorHex by remember { mutableStateOf(config.backgroundColorHex) }
+    var fontSizeSp by remember { mutableFloatStateOf(config.fontSizeSp.toFloat()) }
+    var backgroundStyle by remember { mutableStateOf(config.backgroundStyle) }
+    var customBackgroundImageUri by remember { mutableStateOf(config.customBackgroundImageUri) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                customBackgroundImageUri = uri.toString()
+            }
+        }
+    )
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -313,6 +329,120 @@ fun ScrollingTextDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Font Size Slider
+                Text(
+                    text = "FONT SIZE (${fontSizeSp.toInt()}sp)",
+                    color = StudioCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Slider(
+                    value = fontSizeSp,
+                    onValueChange = { fontSizeSp = it },
+                    valueRange = 8f..32f,
+                    steps = 24,
+                    colors = SliderDefaults.colors(
+                        thumbColor = StudioCyan,
+                        activeTrackColor = StudioCyan
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Background Style
+                Text(
+                    text = "BACKGROUND STYLE",
+                    color = StudioCyan,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val rows = TickerBackgroundStyle.values().toList().chunked(2)
+                    rows.forEach { rowStyles ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            rowStyles.forEach { style ->
+                                val isSelected = backgroundStyle == style
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSelected) StudioPurple.copy(alpha = 0.35f) else StudioCardBg)
+                                        .border(
+                                            1.dp,
+                                            if (isSelected) StudioPurple else StudioCardBorder,
+                                            RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable { backgroundStyle = style }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = style.label,
+                                        color = if (isSelected) Color.White else TextSecondary,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            if (rowStyles.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+
+                if (backgroundStyle == TickerBackgroundStyle.SOLID_COLOR) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = backgroundColorHex,
+                        onValueChange = { backgroundColorHex = it },
+                        label = { Text("Background Color Hex", fontSize = 10.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = StudioCyan,
+                            unfocusedBorderColor = StudioCardBorder,
+                            focusedLabelColor = StudioCyan
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                if (backgroundStyle == TickerBackgroundStyle.CUSTOM_IMAGE) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            imagePickerLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = StudioCardBg),
+                        border = BorderStroke(1.dp, StudioCyan),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null, tint = StudioCyan, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (customBackgroundImageUri == null) "Select Background Image" else "Change Image",
+                            color = StudioCyan,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 // Show Prefix Tag Badge Toggle
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -365,7 +495,10 @@ fun ScrollingTextDialog(
                                     mod = selectedMod,
                                     speed = selectedSpeed,
                                     showPrefixBadge = showPrefixBadge,
-                                    backgroundColorHex = backgroundColorHex
+                                    backgroundColorHex = backgroundColorHex,
+                                    fontSizeSp = fontSizeSp.toInt(),
+                                    backgroundStyle = backgroundStyle,
+                                    customBackgroundImageUri = customBackgroundImageUri
                                 )
                             )
                             onDismiss()

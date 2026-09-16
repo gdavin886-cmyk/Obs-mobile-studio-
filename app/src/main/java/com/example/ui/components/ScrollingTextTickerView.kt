@@ -29,6 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.MarqueeSpeed
 import com.example.model.ScrollingTextConfig
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.blur
+import com.example.model.TickerBackgroundStyle
 import com.example.ui.theme.StudioObsidian
 
 @Composable
@@ -77,11 +81,19 @@ fun ScrollingTextTickerView(
         }
     }
 
-    val bannerBg = remember(config.backgroundColorHex) {
-        try {
-            Color(android.graphics.Color.parseColor(config.backgroundColorHex))
-        } catch (_: Exception) {
-            Color(0xE60A0E1A)
+    val bannerBg = remember(config.backgroundColorHex, config.backgroundStyle) {
+        when (config.backgroundStyle) {
+            TickerBackgroundStyle.TRANSPARENT_GLASS -> Color(0x66000000)
+            TickerBackgroundStyle.LIQUID_GLASS -> Color(0x33FFFFFF)
+            TickerBackgroundStyle.BLOOD_GLASS -> Color(0x998B0000)
+            TickerBackgroundStyle.SOLID_COLOR -> {
+                try {
+                    Color(android.graphics.Color.parseColor(config.backgroundColorHex))
+                } catch (_: Exception) {
+                    Color(0xE60A0E1A)
+                }
+            }
+            TickerBackgroundStyle.CUSTOM_IMAGE -> Color.Transparent
         }
     }
 
@@ -93,18 +105,35 @@ fun ScrollingTextTickerView(
         }
     }
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(0.dp))
             .background(bannerBg)
             .border(0.5.dp, badgeColor.copy(alpha = 0.5f))
             .clickable { onOpenEditDialog() }
-            .padding(vertical = 3.dp)
             .testTag("scrolling_ticker_view")
     ) {
-        // Prefix Mod Tag Badge
+        if (config.backgroundStyle == TickerBackgroundStyle.LIQUID_GLASS) {
+            Box(modifier = Modifier.matchParentSize().blur(16.dp).background(Color(0x33FFFFFF)))
+        }
+        
+        if (config.backgroundStyle == TickerBackgroundStyle.CUSTOM_IMAGE && !config.customBackgroundImageUri.isNullOrEmpty()) {
+            AsyncImage(
+                model = config.customBackgroundImageUri,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize()
+            )
+        }
+        
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 3.dp)
+        ) {
+            // Prefix Mod Tag Badge
         if (config.showPrefixBadge) {
             Box(
                 modifier = Modifier
@@ -130,7 +159,7 @@ fun ScrollingTextTickerView(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(20.dp)
+                .heightIn(min = 20.dp)
                 .clipToBounds()
                 .onSizeChanged { containerWidthPx = it.width.toFloat() }
         ) {
@@ -169,6 +198,7 @@ fun ScrollingTextTickerView(
                 tint = Color(0xFFCBD5E1),
                 modifier = Modifier.size(12.dp)
             )
+        }
         }
     }
 }

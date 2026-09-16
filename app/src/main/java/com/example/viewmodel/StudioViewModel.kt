@@ -121,8 +121,8 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         StreamDestination(
             id = "dest_okru",
             platform = DestinationPlatform.OK_RU,
-            serverUrl = "rtmps://live-push.ok.ru/live/",
-            streamKey = "ok_live_push_8932_auth",
+            serverUrl = "rtmp://vsu.okcdn.ru/input/",
+            streamKey = "Custom*",
             isEnabled = true
         ),
         StreamDestination(
@@ -142,8 +142,8 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         StreamDestination(
             id = "dest_custom",
             platform = DestinationPlatform.CUSTOM_RTMPS,
-            serverUrl = "rtmps://stream.obs-mobile.studio:443/live/",
-            streamKey = "obs_studio_custom_token",
+            serverUrl = "Server url*",
+            streamKey = "Broadcast key*",
             isEnabled = false
         )
     )

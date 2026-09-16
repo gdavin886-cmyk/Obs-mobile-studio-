@@ -146,6 +146,9 @@ fun StreamDestinationsDialog(
                                 onToggle = { onToggleDestination(dest.id) },
                                 onUpdateKey = { newKey ->
                                     onUpdateDestination(dest.copy(streamKey = newKey))
+                                },
+                                onUpdateUrl = { newUrl ->
+                                    onUpdateDestination(dest.copy(serverUrl = newUrl))
                                 }
                             )
                         }
@@ -358,10 +361,12 @@ private fun DestinationCard(
     destination: StreamDestination,
     isLive: Boolean,
     onToggle: () -> Unit,
-    onUpdateKey: (String) -> Unit
+    onUpdateKey: (String) -> Unit,
+    onUpdateUrl: (String) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var streamKeyInput by remember { mutableStateOf(destination.streamKey) }
+    var serverUrlInput by remember { mutableStateOf(destination.serverUrl) }
 
     val platformColor = when (destination.platform) {
         DestinationPlatform.TWITCH -> TwitchPurple
@@ -442,7 +447,7 @@ private fun DestinationCard(
                 )
             }
 
-            // Stream Key input toggle
+            // Stream Key and URL input toggle
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -459,13 +464,32 @@ private fun DestinationCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (isExpanded) "Hide Stream Key" else "Edit Stream Key (RTMPS Token)",
+                    text = if (isExpanded) "Hide Configuration" else "Edit Server URL & Stream Key",
                     color = StudioCyan,
                     fontSize = 10.sp
                 )
             }
 
             if (isExpanded) {
+                Spacer(modifier = Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = serverUrlInput,
+                    onValueChange = {
+                        serverUrlInput = it
+                        onUpdateUrl(it)
+                    },
+                    label = { Text("Server URL", fontSize = 10.sp) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color(0xFFCBD5E1),
+                        focusedBorderColor = StudioCyan,
+                        unfocusedBorderColor = StudioCardBorder
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("url_input_${destination.id}")
+                )
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = streamKeyInput,

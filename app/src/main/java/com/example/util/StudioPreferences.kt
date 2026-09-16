@@ -193,6 +193,10 @@ class StudioPreferences(context: Context) {
             .putString("ticker_mod", ticker.mod.name)
             .putString("ticker_speed", ticker.speed.name)
             .putBoolean("ticker_prefix", ticker.showPrefixBadge)
+            .putInt("ticker_font_size", ticker.fontSizeSp)
+            .putString("ticker_bg_style", ticker.backgroundStyle.name)
+            .putString("ticker_bg_hex", ticker.backgroundColorHex)
+            .putString("ticker_bg_uri", ticker.customBackgroundImageUri)
             .apply()
     }
 
@@ -205,7 +209,11 @@ class StudioPreferences(context: Context) {
                 textContent = prefs.getString("ticker_text", "WELCOME TO THE STREAM! Multi-destination broadcasting active across Twitch, YouTube, OK.ru and Telegram.") ?: "WELCOME TO THE STREAM!",
                 mod = MarqueeMod.valueOf(prefs.getString("ticker_mod", MarqueeMod.BROADCAST_INFORM.name) ?: MarqueeMod.BROADCAST_INFORM.name),
                 speed = MarqueeSpeed.valueOf(prefs.getString("ticker_speed", MarqueeSpeed.NORMAL.name) ?: MarqueeSpeed.NORMAL.name),
-                showPrefixBadge = prefs.getBoolean("ticker_prefix", true)
+                showPrefixBadge = prefs.getBoolean("ticker_prefix", true),
+                fontSizeSp = prefs.getInt("ticker_font_size", 11),
+                backgroundStyle = TickerBackgroundStyle.valueOf(prefs.getString("ticker_bg_style", TickerBackgroundStyle.SOLID_COLOR.name) ?: TickerBackgroundStyle.SOLID_COLOR.name),
+                backgroundColorHex = prefs.getString("ticker_bg_hex", "#E60A0E1A") ?: "#E60A0E1A",
+                customBackgroundImageUri = prefs.getString("ticker_bg_uri", null)
             )
         } catch (_: Exception) {
             ScrollingTextConfig()

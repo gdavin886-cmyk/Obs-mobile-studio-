@@ -38,10 +38,10 @@ data class StudioScene(
 enum class DestinationPlatform(val platformName: String, val defaultUrl: String) {
     TWITCH("Twitch", "rtmps://live.twitch.tv/app/"),
     YOUTUBE("YouTube Live", "rtmps://a.rtmp.youtube.com/live2"),
-    OK_RU("OK.ru (Odnoklassniki)", "rtmps://live-push.ok.ru/live/"),
+    OK_RU("OK.ru (Odnoklassniki)", "rtmp://vsu.okcdn.ru/input/"),
     TELEGRAM("Telegram Live", "rtmps://live.telegram.org:443/live/"),
     FACEBOOK("Facebook Live", "rtmps://live-api-s.facebook.com:443/rtmp/"),
-    CUSTOM_RTMPS("Custom RTMPS", "rtmps://custom.server.com:443/live/")
+    CUSTOM_RTMPS("Custom RTMPS", "Server url*")
 }
 
 data class StudioSettings(
@@ -186,12 +186,22 @@ data class ScrollingTextConfig(
     val backgroundColorHex: String = "#E60A0E1A",
     val textColorHex: String = "#FFFFFF",
     val showPrefixBadge: Boolean = true,
-    val fontSizeSp: Int = 11
+    val fontSizeSp: Int = 11,
+    val backgroundStyle: TickerBackgroundStyle = TickerBackgroundStyle.SOLID_COLOR,
+    val customBackgroundImageUri: String? = null
 )
 
 enum class CustomMediaType(val label: String) {
     VIDEO("Video File"),
     IMAGE("Image File")
+}
+
+enum class TickerBackgroundStyle(val label: String) {
+    SOLID_COLOR("Solid Color"),
+    TRANSPARENT_GLASS("Transparent Glass"),
+    LIQUID_GLASS("Liquid Glass (Blur)"),
+    BLOOD_GLASS("Blood Glass"),
+    CUSTOM_IMAGE("Custom Image")
 }
 
 data class CustomMediaCastConfig(
