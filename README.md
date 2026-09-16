@@ -303,6 +303,7 @@ Twitch
 YouTube Live
 Facebook Live
 Custom RTMPS
+Kick ,etc
 ```
 
 Example:
@@ -310,7 +311,7 @@ Example:
 ```text
                   ┌── Twitch
                   │
-Android Encoder ──┼── YouTube Live
+Android Encoder ─┼──  YouTube Live
                   │
                   ├── Facebook Live
                   │
