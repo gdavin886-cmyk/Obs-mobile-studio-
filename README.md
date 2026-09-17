@@ -1,17 +1,23 @@
 # 📡 OBS Studio Mobile
 
-[![Last Updated](https://img.shields.io/badge/Last%20Updated-September%2016%2C%202026-brightgreen.svg)](https://github.com)
+[![Last Updated](https://img.shields.io/badge/Last%20Updated-September%2017%2C%202026-brightgreen.svg)](https://github.com/gdavin886-cmyk/obs-studio-mobile-app)
 [![Platform](https://img.shields.io/badge/Platform-Android-3DDC84.svg?logo=android&logoColor=white)](https://android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-7F52FF.svg?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4.svg?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Release](https://img.shields.io/badge/Release-v2.5.1-blue.svg)](https://github.com/gdavin886-cmyk/obs-studio-mobile-app/releases/tag/v2.5.1)
 [![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Last Updated:** September 16, 2026 • **Version:** 2.4.0 (Latest Release)
+> **Last Updated:** September 17, 2026 • **Version:** 2.5.1 (Latest Release)
 
 A powerful **OBS Studio-inspired mobile broadcasting application for Android**, built with **Kotlin + Jetpack Compose**, designed to turn an Android phone into a portable live production studio.
 
-Capture your **camera, mobile screen, websites, videos, and images**, compose them into professional scenes, apply chroma-key effects and branded overlays, and publish live broadcasts to multiple RTMPS destinations such as **Twitch, YouTube Live, Facebook Live, and custom RTMPS servers**.
+Capture your **camera, mobile screen, websites, videos, and images**, compose them into professional scenes, apply chroma-key effects and branded overlays, and publish live broadcasts to multiple RTMPS destinations such as **Twitch, YouTube Live, OK.ru, Telegram Live, Facebook Live, and custom RTMPS servers**.
+
+### 📥 Download Latest APK (v2.5.1)
+* **GitHub Release Direct Download**: [**`obs-studio-mobile-v2.5.1.apk`**](https://github.com/gdavin886-cmyk/obs-studio-mobile-app/releases/download/v2.5.1/obs-studio-mobile-v2.5.1.apk) (~29 MB)
+* **Repository Binary**: [`apk/obs-studio-mobile-v2.5.1.apk`](apk/obs-studio-mobile-v2.5.1.apk)
+* **Release Tag Details**: [GitHub Release v2.5.1](https://github.com/gdavin886-cmyk/obs-studio-mobile-app/releases/tag/v2.5.1)
 
 > ⚠️ This project is an independent mobile broadcasting application inspired by desktop production workflows. It is not affiliated with or endorsed by OBS Studio.
 
@@ -1122,7 +1128,27 @@ jobs:
 
 ---
 
-# 📋 Changelog (v2.4.0 - Latest Release)
+# 📋 Changelog
+
+## 🚀 v2.5.1 (Current Release - September 17, 2026)
+* **⚡ Production RTMP Streaming Engine (`StreamManager.kt`)**:
+  * Upgraded live broadcasting from mock simulation to native hardware-accelerated RTMP/RTMPS via `RootEncoder` (`RtmpCamera2` + `OpenGlView`).
+  * Real-time H.264/AAC encoding pipeline with direct connection status feedback (`CONNECTED`, `RETRYING`, `FAILED`, `DISCONNECTED`).
+* **🛡️ SurfaceHolder & OpenGL Lifecycle Synchronization**:
+  * Fixed `NullPointerException: getSurfaceTexture(...) must not be null` during rapid scene switching.
+  * Preview start is synchronized with `SurfaceHolder.Callback` (`surfaceCreated`, `surfaceChanged`) to ensure OpenGL context and EGL display are valid before binding camera textures.
+  * Implemented `replaceView(context)` and detached surface handling to keep active broadcasts alive when swapping screens or navigating away.
+* **🎬 Studio Mode Program / Preview Transitions**:
+  * Verified independent Program monitor and Preview monitor switching with dedicated Cut and Fade transitions.
+  * Verified lifecycle preservation across Activity recreation (`scenario.recreate()`) and background/foreground switching.
+* **🧪 Comprehensive Automated Unit & Lifecycle Verification**:
+  * Added `StudioRuntimePassTest.kt` verifying all 9 critical runtime lifecycles (Dashboard, Camera, WebView, Screen Cast, Media Cast, Starting Soon, Studio Transitions, Start/Stop Live, and rapid scene destruction).
+* **📦 Built Artifacts & Downloads**:
+  * Direct APK download linked in repo (`apk/obs-studio-mobile-v2.5.1.apk`) and attached to GitHub Release `v2.5.1`.
+
+---
+
+## 📋 v2.4.0 Release Notes
 
 * **🖼️ Watermark Branding & Countdown**:
   * Removed default blue frame for clean borderless presentation.
