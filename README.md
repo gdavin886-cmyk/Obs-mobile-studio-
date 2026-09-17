@@ -1026,57 +1026,6 @@ into one Android-based live production workflow.
 
 ---
 
-# 🚀 How to Upload & Push This Project to GitHub
-
-You can export and upload this complete project to your own GitHub repository using either the **Google AI Studio Export** or the **Git Command Line**.
-
-### Method 1: Push via Git Terminal (Recommended)
-
-1. **Create a new empty repository** on GitHub (e.g. `https://github.com/YOUR_USERNAME/obs-studio-mobile`). Do not initialize it with a README or .gitignore (as this project already includes them).
-
-2. **Open your terminal** in the project root directory and initialize Git:
-   ```bash
-   # Initialize git repository
-   git init
-
-   # Set default branch to main
-   git branch -M main
-
-   # Add all files to staging
-   git add .
-
-   # Create initial commit with descriptive message
-   git commit -m "feat: initial commit of OBS Studio Mobile live broadcasting studio v2.4.0"
-   ```
-
-3. **Link your remote GitHub repository**:
-   ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/obs-studio-mobile.git
-   ```
-
-4. **Push your code to GitHub**:
-   ```bash
-   git push -u origin main
-   ```
-
-5. **Future updates & pushes**:
-   Whenever you make modifications:
-   ```bash
-   git add .
-   git commit -m "feat: updated watermark countdown and scrolling ticker overlay"
-   git push
-   ```
-
----
-
-### Method 2: Export from Google AI Studio
-
-1. In the **Google AI Studio** top-right navigation bar, click the **Settings / More Options (⋮)** menu.
-2. Select **"Push to GitHub"** to automatically connect your GitHub account and push this project directly into a new or existing repository.
-3. Alternatively, choose **"Download as ZIP"**, unzip the files on your computer, and push using your preferred Git GUI client (GitHub Desktop, GitKraken, VS Code, Android Studio).
-
----
-
 ### 🛡️ Pre-Upload Verification Checklist
 
 Before pushing to a public repository:
@@ -1087,46 +1036,6 @@ Before pushing to a public repository:
 
 ---
 
-### 🤖 Automated GitHub Actions CI (Optional)
-
-You can add `.github/workflows/android.yml` to automatically build your APK on every push:
-
-```yaml
-name: Android CI Build
-
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: gradle
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
-
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
-
-    - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: obs-studio-mobile-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
-```
-
----
 
 # 📋 Changelog
 
