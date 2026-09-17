@@ -82,27 +82,31 @@ fun CameraPreviewView(
                     }
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                     cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
-                        }
-                        val cameraSelector = if (isFrontCamera) {
-                            CameraSelector.DEFAULT_FRONT_CAMERA
-                        } else {
-                            CameraSelector.DEFAULT_BACK_CAMERA
-                        }
                         try {
-                            cameraProvider.unbindAll()
-                            val camera = cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview
-                            )
-                            if (camera.cameraInfo.hasFlashUnit()) {
-                                camera.cameraControl.enableTorch(isTorchOn)
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
+                            }
+                            val cameraSelector = if (isFrontCamera) {
+                                CameraSelector.DEFAULT_FRONT_CAMERA
+                            } else {
+                                CameraSelector.DEFAULT_BACK_CAMERA
+                            }
+                            try {
+                                cameraProvider.unbindAll()
+                                val camera = cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview
+                                )
+                                if (camera.cameraInfo.hasFlashUnit()) {
+                                    camera.cameraControl.enableTorch(isTorchOn)
+                                }
+                            } catch (exc: Exception) {
+                                // Camera binding failed (e.g. emulator missing camera hardware)
                             }
                         } catch (e: Exception) {
-                            // Fallback gracefully on devices without selected lens
+                            // CameraProvider future failed or timed out
                         }
                     }, ContextCompat.getMainExecutor(ctx))
                     previewView
