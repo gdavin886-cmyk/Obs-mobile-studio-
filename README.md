@@ -16,7 +16,7 @@ Capture your **camera, mobile screen, websites, videos, and images**, compose th
 
 ### 📥 Download Latest APK (v2.5.1)
 * **GitHub Release Direct Download**: [**`obs-studio-mobile-v2.5.1.apk`**](https://github.com/gdavin886-cmyk/obs-studio-mobile-app/releases/download/v2.5.1/obs-studio-mobile-v2.5.1.apk) (~29 MB)
-* **OS**: Android 
+* **OS support**: Android 10 above 
 * **Release Tag Details**: [GitHub Release v2.5.1](https://github.com/gdavin886-cmyk/obs-studio-mobile-app/releases/tag/v2.5.1)
 
 > ⚠️ This project is an independent mobile broadcasting application inspired by desktop production workflows. It is not affiliated with or endorsed by OBS Studio.
