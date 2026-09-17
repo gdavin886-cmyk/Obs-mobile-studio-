@@ -1,11 +1,10 @@
-# Release v2.0.0
+# Release v2.1.0
 
 ## 🚀 Major Updates & Features
-* **Real RTMP Network Verification**: Replaced simulated connection tasks with real TCP socket network connections to actively verify Server URLs (port 443 for RTMPS, 1935 for RTMP) and Stream Keys before broadcasting.
-* **Streamlined Multi-Destination Streaming**: Parallelized connection checks across all configured broadcasting destinations (YouTube, Twitch, Facebook, Custom RTMP, Telegram).
+* **Media Projection Screen Broadcasting Permissions**: Added `FOREGROUND_SERVICE_MEDIA_PROJECTION` permissions and service type configuration to fully support Android screen casting and mobile live broadcast capture.
+* **Real RTMP Network Verification**: Replaced simulated connection tasks with real TCP socket network connections to actively verify Server URLs and Stream Keys before broadcasting.
 
 ## 🛠️ Comprehensive Error Fixes & Stability Improvements
-* **MESA Rendernode Crash Resolved**: Fixed critical virtual device rendering crashes by explicitly forcing software layer rendering (`LAYER_TYPE_SOFTWARE`) across all `WebView`, `VideoView`, and Camera `PreviewView` components.
-* **CameraX Timeout Exception Handled**: Added robust try-catch wrapping around `ProcessCameraProvider` future retrieval and lifecycle binding to gracefully handle emulators lacking physical camera hardware without crashing.
-* **Chromium Cache Error Resilience**: Handled file enumerator and cache index initialization errors gracefully to ensure smooth web and streaming source views.
-* **Clean Authentication & Git Sync**: Streamlined repository tracking and clean release pushing with token authentication.
+* **MESA Rendernode Resilience**: Enforced software rendering fallbacks across all `WebView`, `VideoView`, and Camera `PreviewView` components to ensure error-free rendering on virtual emulators.
+* **CameraX Timeout Exception Handled**: Robustly handled camera initialization and binding timeouts to prevent crashes on headless or non-standard Android test environments.
+* **Git Sync & Tagging**: Clean release tracking and synchronization with GitHub.
