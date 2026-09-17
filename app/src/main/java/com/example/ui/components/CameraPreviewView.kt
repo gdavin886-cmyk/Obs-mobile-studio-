@@ -2,20 +2,16 @@ package com.example.ui.components
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
+import android.view.SurfaceHolder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,10 +25,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.ui.theme.StudioCyan
-import com.example.ui.theme.StudioLiveRed
 import com.example.ui.theme.StudioObsidian
+import com.example.stream.StreamManager
+import com.pedro.library.view.OpenGlView
+import com.pedro.encoder.input.video.CameraHelper
 
 @Composable
 fun CameraPreviewView(
@@ -43,8 +40,6 @@ fun CameraPreviewView(
     keyColorHex: String = "#00FF00"
 ) {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -65,6 +60,31 @@ fun CameraPreviewView(
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
+    
+    // Handle camera switching
+    LaunchedEffect(isFrontCamera) {
+        if (StreamManager.isReady && StreamManager.rtmpCamera?.isOnPreview == true) {
+            val isCurrentFront = StreamManager.rtmpCamera?.isFrontCamera ?: false
+            if (isCurrentFront != isFrontCamera) {
+                try {
+                    StreamManager.rtmpCamera?.switchCamera()
+                } catch (e: Exception) {
+                    Log.e("CameraPreviewView", "Error switching camera", e)
+                }
+            }
+        }
+    }
+    
+    // Handle torch
+    LaunchedEffect(isTorchOn) {
+        if (StreamManager.isReady && StreamManager.rtmpCamera?.isStreaming == true) {
+            try {
+                if (isTorchOn) StreamManager.rtmpCamera?.enableLantern() else StreamManager.rtmpCamera?.disableLantern()
+            } catch (e: Exception) {
+                Log.e("CameraPreviewView", "Error toggling torch", e)
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -75,35 +95,36 @@ fun CameraPreviewView(
         if (hasCameraPermission) {
             AndroidView(
                 factory = { ctx ->
-                    val previewView = PreviewView(ctx).apply {
-                        scaleType = PreviewView.ScaleType.FILL_CENTER
-                    }
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
+                    val openGlView = OpenGlView(ctx)
+                    StreamManager.init(openGlView, ctx)
+                    openGlView.holder.addCallback(object : SurfaceHolder.Callback {
+                        override fun surfaceCreated(holder: SurfaceHolder) {
+                            // Surface is created
                         }
-                        val cameraSelector = if (isFrontCamera) {
-                            CameraSelector.DEFAULT_FRONT_CAMERA
-                        } else {
-                            CameraSelector.DEFAULT_BACK_CAMERA
-                        }
-                        try {
-                            cameraProvider.unbindAll()
-                            val camera = cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview
-                            )
-                            if (camera.cameraInfo.hasFlashUnit()) {
-                                camera.cameraControl.enableTorch(isTorchOn)
+
+                        override fun surfaceChanged(
+                            holder: SurfaceHolder,
+                            format: Int,
+                            width: Int,
+                            height: Int
+                        ) {
+                            if (holder.surface.isValid) {
+                                if (StreamManager.rtmpCamera != null && StreamManager.openGlView !== openGlView) {
+                                    StreamManager.init(openGlView, ctx)
+                                }
+                                val facing = if (isFrontCamera) CameraHelper.Facing.FRONT else CameraHelper.Facing.BACK
+                                StreamManager.startPreview(facing)
                             }
-                        } catch (e: Exception) {
-                            // Fallback gracefully on devices without selected lens
                         }
-                    }, ContextCompat.getMainExecutor(ctx))
-                    previewView
+
+                        override fun surfaceDestroyed(holder: SurfaceHolder) {
+                            StreamManager.handleSurfaceDestroyed(ctx)
+                        }
+                    })
+                    openGlView
+                },
+                onRelease = {
+                    StreamManager.handleSurfaceDestroyed(context)
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -124,7 +145,7 @@ fun CameraPreviewView(
                 )
             }
         } else {
-            // High-fidelity Studio Camera Standby placeholder when permission is not granted
+            // Placeholder when permission is not granted
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,

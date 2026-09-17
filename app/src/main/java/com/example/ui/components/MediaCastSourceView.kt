@@ -72,6 +72,7 @@ fun MediaCastSourceView(
                 AndroidView(
                     factory = { ctx ->
                         VideoView(ctx).apply {
+                            setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                             try {
                                 setVideoURI(Uri.parse(mediaConfig.uri))
                                 setOnPreparedListener { mp ->

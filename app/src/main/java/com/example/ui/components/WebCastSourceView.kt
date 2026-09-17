@@ -193,6 +193,8 @@ fun WebCastSourceView(
                                 isLoading = newProgress < 100
                             }
                         }
+                        // Disable hardware acceleration to prevent rendernode crashes on some emulators/devices
+                        setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                         loadUrl(url)
                         webViewInstance = this
                     }
@@ -281,6 +283,8 @@ fun WebCastSourceView(
                                     isLoading = newProgress < 100
                                 }
                             }
+                            // Disable hardware acceleration to prevent rendernode crashes on some emulators/devices
+                            setLayerType(android.view.View.LAYER_TYPE_SOFTWARE, null)
                             loadUrl(url)
                             fullScreenWebViewInstance = this
                         }

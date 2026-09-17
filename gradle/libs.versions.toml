@@ -43,6 +43,7 @@ credentials = "1.5.0"
 googleid = "1.1.1"
 
 
+rootencoder = "2.5.4"
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -102,6 +103,7 @@ androidx-credentials-play-services = { group = "androidx.credentials", name = "c
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 
+rootencoder = { group = "com.github.pedroSG94.RootEncoder", name = "library", version.ref = "rootencoder" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

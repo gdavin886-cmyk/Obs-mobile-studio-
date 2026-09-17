@@ -107,37 +107,41 @@ fun StudioDashboardScreen(
             .testTag("studio_dashboard_screen"),
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(StudioObsidian)
         ) {
-            // Top Studio Header & Telemetry Bar
-            StudioHeaderBar(
-                isLive = isLive,
-                isRecording = isRecording,
-                isStudioMode = isStudioMode,
-                durationSeconds = streamDurationSeconds,
-                telemetry = telemetry,
-                onToggleLive = { viewModel.toggleLive() },
-                onToggleRecording = { viewModel.toggleRecording() },
-                onToggleStudioMode = { viewModel.toggleStudioMode() },
-                onOpenDestinations = { showDestinationsDialog = true },
-                onOpenAlertSimulator = { showAlertSimulator = true },
-                onOpenSettings = { showSettingsDialog = true }
-            )
-
-            // Scrollable Broadcast Canvas & Control Deck
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxSize()
+                    .background(StudioObsidian)
             ) {
-                if (isStudioMode) {
+                // Top Studio Header & Telemetry Bar
+                StudioHeaderBar(
+                    isLive = isLive,
+                    isRecording = isRecording,
+                    isStudioMode = isStudioMode,
+                    durationSeconds = streamDurationSeconds,
+                    telemetry = telemetry,
+                    onToggleLive = { viewModel.toggleLive() },
+                    onToggleRecording = { viewModel.toggleRecording() },
+                    onToggleStudioMode = { viewModel.toggleStudioMode() },
+                    onOpenDestinations = { showDestinationsDialog = true },
+                    onOpenAlertSimulator = { showAlertSimulator = true },
+                    onOpenSettings = { showSettingsDialog = true }
+                )
+
+                // Scrollable Broadcast Canvas & Control Deck
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (isStudioMode) {
                     // Studio Mode: Stacked Preview (Staged) and Program (Live)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -445,6 +449,7 @@ fun StudioDashboardScreen(
             }
         }
     }
+}
 
     // Modal Dialogs
     if (showChromaKeyDialog) {

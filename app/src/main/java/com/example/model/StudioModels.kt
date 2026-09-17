@@ -55,6 +55,10 @@ data class StudioSettings(
     val audioBitrateKbps: Int = 160
 )
 
+enum class ConnectionStatus {
+    IDLE, CONNECTING, CONNECTED, ERROR
+}
+
 data class StreamDestination(
     val id: String,
     val platform: DestinationPlatform,
@@ -62,6 +66,8 @@ data class StreamDestination(
     val streamKey: String,
     val isEnabled: Boolean = true,
     val isLive: Boolean = false,
+    val connectionStatus: ConnectionStatus = ConnectionStatus.IDLE,
+    val connectionMessage: String? = null,
     val currentBitrateKbps: Int = 0,
     val latencyMs: Int = 0,
     val droppedFramesPercent: Float = 0.0f

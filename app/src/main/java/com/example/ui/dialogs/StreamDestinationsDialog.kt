@@ -418,7 +418,7 @@ private fun DestinationCard(
                 }
 
                 // Live Status Badge
-                if (isLive && destination.isEnabled) {
+                if (isLive && destination.isEnabled && destination.connectionStatus == ConnectionStatus.CONNECTED) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -427,6 +427,38 @@ private fun DestinationCard(
                     ) {
                         Text(
                             text = "LIVE (${destination.latencyMs}ms)",
+                            color = Color.White,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                } else if (isLive && destination.isEnabled && destination.connectionStatus == ConnectionStatus.CONNECTING) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(StudioCyan.copy(alpha = 0.5f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "CONNECTING...",
+                            color = Color.White,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                } else if (isLive && destination.isEnabled && destination.connectionStatus == ConnectionStatus.ERROR) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.Red)
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "ERROR",
                             color = Color.White,
                             fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
@@ -445,6 +477,56 @@ private fun DestinationCard(
                     ),
                     modifier = Modifier.testTag("toggle_dest_${destination.id}")
                 )
+            }
+
+            // Connection Error Message Display
+            if (isLive && destination.isEnabled && destination.connectionStatus == ConnectionStatus.ERROR && !destination.connectionMessage.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF330000))
+                        .padding(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = "Error",
+                        tint = Color.Red,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = destination.connectionMessage,
+                        color = Color(0xFFFF9999),
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 12.sp
+                    )
+                }
+            } else if (isLive && destination.isEnabled && destination.connectionStatus == ConnectionStatus.CONNECTED && !destination.connectionMessage.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircleOutline,
+                        contentDescription = "Connected",
+                        tint = StudioCyan,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = destination.connectionMessage,
+                        color = StudioCyan,
+                        fontSize = 9.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
             }
 
             // Stream Key and URL input toggle

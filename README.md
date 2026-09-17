@@ -1149,3 +1149,17 @@ jobs:
 * **🎚️ 4-Channel Audio Mixer & Telemetry Deck**:
   * Microphone, Screen Audio, Media, and Alert SFX channels with VU meters.
   * Real-time FPS, kbps bitrate, frame drop %, and latency monitoring.
+
+# Streaming Pipeline and Architecture Update
+The application has transitioned from a UI prototype into an actual Android live streaming pipeline. Please refer to `STREAMING_ARCHITECTURE.md` for a detailed technical explanation of the real media pipeline.
+
+## Features Implemented
+* **Real RTMP/RTMPS Client**: Integrated `com.github.pedroSG94.RootEncoder` for stable hardware-accelerated video streaming.
+* **Camera Streaming**: Fully implemented using `OpenGlView` and `RtmpCamera2`, routing the Android camera directly into the RTMP encoder at configurable bitrates/fps.
+* **Connection State Management**: The UI updates accurately based on real TCP/RTMP connection callbacks.
+* **Foreground Service**: Broadcasting persists across app states via `StudioBroadcastService`.
+* **Clean Abstracted Multi-Stream Logic**: To prevent device failure, one primary RTMP stream is initiated, marking additional streams as "Skipped (Multi-stream not implemented)" indicating the need for server-side restreaming.
+
+## Features Remaining Simulated
+* **Screen Cast / WebView / Media Playback / Chroma Key Composition**: While their UI and preview elements exist, full hardware compositing (OpenGL EGL multiplexing) of arbitrary Compose views into the outgoing RTMP stream is currently simulated. The hardware stream defaults to the camera source.
+* **Dynamic Bitrate/FPS/Latency Analytics**: True RTMP throughput statistics are partially simulated or static depending on the callback availability in the stream loop.

@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlin.random.Random
 
 class StudioViewModel(application: Application) : AndroidViewModel(application) {
@@ -274,15 +276,18 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                     // Update live destination readouts
                     _destinations.update { list ->
                         list.map { dest ->
-                            if (dest.isEnabled) {
+                            if (dest.isEnabled && dest.connectionStatus == ConnectionStatus.CONNECTED) {
+                                val destLatency = if (dest.platform == DestinationPlatform.OK_RU) latency + Random.nextInt(40, 80) else latency + Random.nextInt(-5, 10)
+                                val destLoss = if (dest.platform == DestinationPlatform.OK_RU) Random.nextFloat() * 1.2f else Random.nextFloat() * 0.1f
                                 dest.copy(
                                     isLive = true,
                                     currentBitrateKbps = jitterBitrate + Random.nextInt(-40, 40),
-                                    latencyMs = latency + Random.nextInt(-5, 5),
-                                    droppedFramesPercent = 0.01f
+                                    latencyMs = destLatency,
+                                    droppedFramesPercent = destLoss
                                 )
                             } else {
-                                dest.copy(isLive = false, currentBitrateKbps = 0, latencyMs = 0)
+                                // Do not overwrite ERROR or CONNECTING states for enabled destinations
+                                dest
                             }
                         }
                     }
@@ -336,8 +341,98 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                     _streamDurationSeconds.update { it + 1 }
                 }
             }
+            
+            // Set all enabled destinations to connecting initially
             _destinations.update { list ->
-                list.map { if (it.isEnabled) it.copy(isLive = true) else it }
+                list.map { 
+                    if (it.isEnabled) it.copy(connectionStatus = ConnectionStatus.CONNECTING, connectionMessage = "Connecting to server...") 
+                    else it 
+                }
+            }
+            
+            viewModelScope.launch {
+                val updatedDestinations = _destinations.value.toMutableList()
+                val enabledDests = updatedDestinations.filter { it.isEnabled }
+                if (enabledDests.isEmpty()) {
+                    _isLive.value = false
+                    tickerJob?.cancel()
+                    _streamDurationSeconds.value = 0L
+                    return@launch
+                }
+                
+                val primaryDest = enabledDests.first()
+                val destIndex = updatedDestinations.indexOf(primaryDest)
+                
+                if (primaryDest.streamKey.isBlank()) {
+                    _destinations.update { list ->
+                        list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Stream key is missing or empty") else it }
+                    }
+                    _isLive.value = false
+                    tickerJob?.cancel()
+                    _streamDurationSeconds.value = 0L
+                    StudioBroadcastService.stopService(getApplication())
+                    return@launch
+                }
+                
+                if (primaryDest.serverUrl.isBlank()) {
+                    _destinations.update { list ->
+                        list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Server URL is missing") else it }
+                    }
+                    _isLive.value = false
+                    tickerJob?.cancel()
+                    _streamDurationSeconds.value = 0L
+                    StudioBroadcastService.stopService(getApplication())
+                    return@launch
+                }
+                
+                val fullUrl = if (primaryDest.serverUrl.endsWith("/")) {
+                    primaryDest.serverUrl + primaryDest.streamKey
+                } else {
+                    primaryDest.serverUrl + "/" + primaryDest.streamKey
+                }
+                
+                val config = _encoderConfig.value
+                
+                // Real Live Streaming Implementation
+                com.example.stream.StreamManager.onConnectionSuccess = {
+                    _destinations.update { list ->
+                        list.mapIndexed { i, d ->
+                            if (i == destIndex) {
+                                d.copy(isLive = true, connectionStatus = ConnectionStatus.CONNECTED, connectionMessage = "Connected to real encoder pipeline")
+                            } else if (d.isEnabled) {
+                                d.copy(connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Skipped (Multi-stream not implemented)")
+                            } else d
+                        }
+                    }
+                    
+                    val anyLive = _destinations.value.any { it.isLive }
+                    if (!anyLive) {
+                        _isLive.value = false
+                        tickerJob?.cancel()
+                        _streamDurationSeconds.value = 0L
+                        StudioBroadcastService.stopService(getApplication())
+                    }
+                }
+                
+                com.example.stream.StreamManager.onConnectionFailed = { reason ->
+                    _destinations.update { list ->
+                        list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Network Error: $reason") else it }
+                    }
+                    _isLive.value = false
+                    tickerJob?.cancel()
+                    _streamDurationSeconds.value = 0L
+                    StudioBroadcastService.stopService(getApplication())
+                }
+                
+                com.example.stream.StreamManager.onDisconnect = {
+                    if (_isLive.value) toggleLive()
+                }
+                
+                try {
+                    com.example.stream.StreamManager.startStream(fullUrl, config.resolution.width, config.resolution.height, config.fps, config.targetBitrateKbps, config.audioBitrateKbps)
+                } catch (e: Exception) {
+                    com.example.stream.StreamManager.onConnectionFailed?.invoke(e.localizedMessage ?: "Unknown error")
+                }
             }
 
             // Start foreground live broadcast service
@@ -357,8 +452,11 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
             tickerJob?.cancel()
             _streamDurationSeconds.value = 0L
             _destinations.update { list ->
-                list.map { it.copy(isLive = false, currentBitrateKbps = 0, latencyMs = 0) }
+                list.map { it.copy(isLive = false, connectionStatus = ConnectionStatus.IDLE, connectionMessage = null, currentBitrateKbps = 0, latencyMs = 0) }
             }
+
+            // Stop active streaming encoder
+            com.example.stream.StreamManager.stopStream()
 
             // Stop foreground live broadcast service
             StudioBroadcastService.stopService(getApplication())
