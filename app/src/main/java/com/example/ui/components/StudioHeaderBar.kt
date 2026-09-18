@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.R
 import com.example.model.StudioTelemetry
+import com.example.telegram.TelegramLiveStatus
+import com.example.telegram.TelegramManager
 import com.example.ui.theme.*
 
 @Composable
@@ -45,8 +47,10 @@ fun StudioHeaderBar(
     onOpenDestinations: () -> Unit,
     onOpenAlertSimulator: () -> Unit,
     onOpenSettings: () -> Unit = {},
+    onOpenTelegramLive: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val tgLiveStatus by TelegramManager.liveStatus.collectAsState()
     val durationFormatted = remember(durationSeconds) {
         val hours = durationSeconds / 3600
         val minutes = (durationSeconds % 3600) / 60
@@ -147,6 +151,43 @@ fun StudioHeaderBar(
                     }
                 }
             }
+
+            // Telegram Channel Live Pill Button
+            val tgColor = when (tgLiveStatus) {
+                TelegramLiveStatus.IDLE -> Color(0xFF24A1DE)
+                TelegramLiveStatus.CONNECTING -> StudioAmber
+                TelegramLiveStatus.CONNECTED -> Color(0xFF24A1DE)
+                TelegramLiveStatus.LIVE -> StudioNeonGreen
+                TelegramLiveStatus.ERROR -> StudioLiveRed
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(StudioCardBg)
+                    .border(1.dp, tgColor.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                    .clickable { onOpenTelegramLive() }
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                    .testTag("header_telegram_live_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "Telegram Channel Live",
+                    tint = tgColor,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "TG: " + tgLiveStatus.label.removePrefix("TELEGRAM: "),
+                    color = tgColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
 
             // Quick Engagement Alert Trigger Icon
             IconButton(

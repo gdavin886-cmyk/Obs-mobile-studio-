@@ -77,6 +77,7 @@ fun StudioDashboardScreen(
     // Dialog Visibility States
     var showChromaKeyDialog by remember { mutableStateOf(false) }
     var showDestinationsDialog by remember { mutableStateOf(false) }
+    var showTelegramLiveDialog by remember { mutableStateOf(false) }
     var showAlertSimulator by remember { mutableStateOf(false) }
     var showLogoDialog by remember { mutableStateOf(false) }
     var showScrollingTextDialog by remember { mutableStateOf(false) }
@@ -129,7 +130,8 @@ fun StudioDashboardScreen(
                     onToggleStudioMode = { viewModel.toggleStudioMode() },
                     onOpenDestinations = { showDestinationsDialog = true },
                     onOpenAlertSimulator = { showAlertSimulator = true },
-                    onOpenSettings = { showSettingsDialog = true }
+                    onOpenSettings = { showSettingsDialog = true },
+                    onOpenTelegramLive = { showTelegramLiveDialog = true }
                 )
 
                 // Scrollable Broadcast Canvas & Control Deck
@@ -539,6 +541,15 @@ fun StudioDashboardScreen(
                 showScrollingTextDialog = true
             },
             onDismiss = { showSettingsDialog = false }
+        )
+    }
+
+    if (showTelegramLiveDialog) {
+        TelegramLiveDialog(
+            onDismiss = { showTelegramLiveDialog = false },
+            onSaveAndApply = { url, key ->
+                viewModel.updateTelegramDestination(url, key.getSecret())
+            }
         )
     }
 }

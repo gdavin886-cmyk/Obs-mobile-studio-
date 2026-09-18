@@ -39,7 +39,7 @@ enum class DestinationPlatform(val platformName: String, val defaultUrl: String)
     TWITCH("Twitch", "rtmps://live.twitch.tv/app/"),
     YOUTUBE("YouTube Live", "rtmps://a.rtmp.youtube.com/live2"),
     OK_RU("OK.ru (Odnoklassniki)", "rtmp://vsu.okcdn.ru/input/"),
-    TELEGRAM("Telegram Live", "rtmps://live.telegram.org:443/live/"),
+    TELEGRAM("Telegram Live", ""),
     FACEBOOK("Facebook Live", "rtmps://live-api-s.facebook.com:443/rtmp/"),
     CUSTOM_RTMPS("Custom RTMPS", "Server url*")
 }

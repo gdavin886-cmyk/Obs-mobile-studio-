@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.model.*
 import com.example.service.StudioBroadcastService
+import com.example.telegram.*
 import com.example.util.StudioPreferences
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -130,9 +131,9 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         StreamDestination(
             id = "dest_telegram",
             platform = DestinationPlatform.TELEGRAM,
-            serverUrl = "rtmps://live.telegram.org:443/live/",
-            streamKey = "tg_live_chan_983719_key",
-            isEnabled = true
+            serverUrl = "",
+            streamKey = "",
+            isEnabled = false
         ),
         StreamDestination(
             id = "dest_facebook",
@@ -363,7 +364,51 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 val primaryDest = enabledDests.first()
                 val destIndex = updatedDestinations.indexOf(primaryDest)
                 
-                if (primaryDest.streamKey.isBlank()) {
+                var targetServerUrl = primaryDest.serverUrl
+                var targetStreamKey = primaryDest.streamKey
+
+                // Official Telegram Livestream Flow
+                if (primaryDest.platform == DestinationPlatform.TELEGRAM) {
+                    val channel = TelegramManager.selectedChannel.value
+                    if (channel == null) {
+                        val errMsg = "Please select a Telegram channel in Broadcast Destinations"
+                        TelegramManager.updateLiveStatus(TelegramLiveStatus.ERROR, errMsg)
+                        _destinations.update { list ->
+                            list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = errMsg) else it }
+                        }
+                        _isLive.value = false
+                        tickerJob?.cancel()
+                        _streamDurationSeconds.value = 0L
+                        StudioBroadcastService.stopService(getApplication())
+                        return@launch
+                    }
+
+                    TelegramManager.updateLiveStatus(TelegramLiveStatus.CONNECTING, "Executing Telegram MTProto API flow...")
+                    val prepResult = TelegramManager.prepareTelegramLivestream(channel)
+                    if (prepResult.isFailure) {
+                        val errMsg = prepResult.exceptionOrNull()?.message ?: "Telegram livestream setup failed"
+                        TelegramManager.updateLiveStatus(TelegramLiveStatus.ERROR, errMsg)
+                        _destinations.update { list ->
+                            list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = errMsg) else it }
+                        }
+                        _isLive.value = false
+                        tickerJob?.cancel()
+                        _streamDurationSeconds.value = 0L
+                        StudioBroadcastService.stopService(getApplication())
+                        return@launch
+                    }
+
+                    val creds = prepResult.getOrThrow()
+                    targetServerUrl = creds.rtmpUrl
+                    targetStreamKey = creds.streamKey.getSecret()
+
+                    _destinations.update { list ->
+                        list.map { if (it.id == primaryDest.id) it.copy(serverUrl = targetServerUrl, streamKey = targetStreamKey) else it }
+                    }
+                    TelegramManager.updateLiveStatus(TelegramLiveStatus.CONNECTED, "Telegram RTMP endpoint ready")
+                }
+
+                if (targetStreamKey.isBlank()) {
                     _destinations.update { list ->
                         list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Stream key is missing or empty") else it }
                     }
@@ -374,7 +419,7 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
                 
-                if (primaryDest.serverUrl.isBlank()) {
+                if (targetServerUrl.isBlank()) {
                     _destinations.update { list ->
                         list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Server URL is missing") else it }
                     }
@@ -385,28 +430,55 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
                 
-                val fullUrl = if (primaryDest.serverUrl.endsWith("/")) {
-                    primaryDest.serverUrl + primaryDest.streamKey
+                val fullUrl = if (targetServerUrl.endsWith("/")) {
+                    targetServerUrl + targetStreamKey
                 } else {
-                    primaryDest.serverUrl + "/" + primaryDest.streamKey
+                    targetServerUrl + "/" + targetStreamKey
                 }
                 
                 val config = _encoderConfig.value
                 
                 // Real Live Streaming Implementation
                 com.example.stream.StreamManager.onConnectionSuccess = {
-                    _destinations.update { list ->
-                        list.mapIndexed { i, d ->
-                            if (i == destIndex) {
-                                d.copy(isLive = true, connectionStatus = ConnectionStatus.CONNECTED, connectionMessage = "Connected to real encoder pipeline")
-                            } else if (d.isEnabled) {
-                                d.copy(connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Skipped (Multi-stream not implemented)")
-                            } else d
+                    if (primaryDest.platform == DestinationPlatform.TELEGRAM) {
+                        TelegramManager.updateLiveStatus(TelegramLiveStatus.CONNECTED, "RTMP socket connected. Verifying Telegram group call...")
+                        viewModelScope.launch {
+                            val active = TelegramManager.verifyAndSetLive()
+                            if (active) {
+                                _destinations.update { list ->
+                                    list.mapIndexed { i, d ->
+                                        if (i == destIndex) {
+                                            d.copy(isLive = true, connectionStatus = ConnectionStatus.CONNECTED, connectionMessage = "Live on Telegram Channel")
+                                        } else if (d.isEnabled) {
+                                            d.copy(connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Skipped (Multi-stream not implemented)")
+                                        } else d
+                                    }
+                                }
+                            } else {
+                                TelegramManager.updateLiveStatus(TelegramLiveStatus.ERROR, "Telegram channel livestream is not active")
+                                _destinations.update { list ->
+                                    list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Telegram livestream not active") else it }
+                                }
+                                _isLive.value = false
+                                tickerJob?.cancel()
+                                _streamDurationSeconds.value = 0L
+                                StudioBroadcastService.stopService(getApplication())
+                            }
+                        }
+                    } else {
+                        _destinations.update { list ->
+                            list.mapIndexed { i, d ->
+                                if (i == destIndex) {
+                                    d.copy(isLive = true, connectionStatus = ConnectionStatus.CONNECTED, connectionMessage = "Connected to real encoder pipeline")
+                                } else if (d.isEnabled) {
+                                    d.copy(connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Skipped (Multi-stream not implemented)")
+                                } else d
+                            }
                         }
                     }
                     
                     val anyLive = _destinations.value.any { it.isLive }
-                    if (!anyLive) {
+                    if (!anyLive && primaryDest.platform != DestinationPlatform.TELEGRAM) {
                         _isLive.value = false
                         tickerJob?.cancel()
                         _streamDurationSeconds.value = 0L
@@ -415,6 +487,9 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 
                 com.example.stream.StreamManager.onConnectionFailed = { reason ->
+                    if (primaryDest.platform == DestinationPlatform.TELEGRAM) {
+                        TelegramManager.updateLiveStatus(TelegramLiveStatus.ERROR, "RTMP Error: $reason")
+                    }
                     _destinations.update { list ->
                         list.map { if (it.id == primaryDest.id) it.copy(isLive = false, connectionStatus = ConnectionStatus.ERROR, connectionMessage = "Network Error: $reason") else it }
                     }
@@ -425,6 +500,9 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 }
                 
                 com.example.stream.StreamManager.onDisconnect = {
+                    if (primaryDest.platform == DestinationPlatform.TELEGRAM) {
+                        TelegramManager.updateLiveStatus(TelegramLiveStatus.IDLE)
+                    }
                     if (_isLive.value) toggleLive()
                 }
                 
@@ -455,6 +533,11 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 list.map { it.copy(isLive = false, connectionStatus = ConnectionStatus.IDLE, connectionMessage = null, currentBitrateKbps = 0, latencyMs = 0) }
             }
 
+            // Stop Telegram livestream cleanly if active
+            viewModelScope.launch {
+                TelegramManager.stopTelegramLive(discardGroupCall = true)
+            }
+
             // Stop active streaming encoder
             com.example.stream.StreamManager.stopStream()
 
@@ -464,6 +547,16 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
             // If scrolling text is not in permanent running mode, auto turn off when live ends
             if (!_scrollingTextConfig.value.isPermanentRunning) {
                 _scrollingTextConfig.update { it.copy(isEnabled = false) }
+            }
+        }
+    }
+
+    fun updateTelegramDestination(url: String, key: String) {
+        _destinations.update { list ->
+            list.map {
+                if (it.platform == DestinationPlatform.TELEGRAM) {
+                    it.copy(serverUrl = url, streamKey = key, isEnabled = true)
+                } else it
             }
         }
     }

@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.model.*
+import com.example.telegram.*
 import com.example.ui.theme.*
 
 @Composable
@@ -37,6 +38,19 @@ fun StreamDestinationsDialog(
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Output Platforms, 1: Hardware Encoder
     var currentEncoder by remember { mutableStateOf(encoderConfig) }
+    var showTelegramDialog by remember { mutableStateOf(false) }
+
+    if (showTelegramDialog) {
+        TelegramLiveDialog(
+            onDismiss = { showTelegramDialog = false },
+            onSaveAndApply = { url, key ->
+                val tg = destinations.find { it.platform == DestinationPlatform.TELEGRAM }
+                if (tg != null) {
+                    onUpdateDestination(tg.copy(serverUrl = url, streamKey = key.getSecret(), isEnabled = true))
+                }
+            }
+        )
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -149,7 +163,8 @@ fun StreamDestinationsDialog(
                                 },
                                 onUpdateUrl = { newUrl ->
                                     onUpdateDestination(dest.copy(serverUrl = newUrl))
-                                }
+                                },
+                                onOpenTelegramSetup = { showTelegramDialog = true }
                             )
                         }
                     }
@@ -362,11 +377,16 @@ private fun DestinationCard(
     isLive: Boolean,
     onToggle: () -> Unit,
     onUpdateKey: (String) -> Unit,
-    onUpdateUrl: (String) -> Unit
+    onUpdateUrl: (String) -> Unit,
+    onOpenTelegramSetup: (() -> Unit)? = null
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var streamKeyInput by remember { mutableStateOf(destination.streamKey) }
     var serverUrlInput by remember { mutableStateOf(destination.serverUrl) }
+
+    val isTelegram = destination.platform == DestinationPlatform.TELEGRAM
+    val tgChannel by TelegramManager.selectedChannel.collectAsState()
+    val tgLiveStatus by TelegramManager.liveStatus.collectAsState()
 
     val platformColor = when (destination.platform) {
         DestinationPlatform.TWITCH -> TwitchPurple
@@ -402,14 +422,35 @@ private fun DestinationCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = destination.platform.platformName,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isTelegram) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(TelegramBlue.copy(alpha = 0.2f))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp)
+                            ) {
+                                Text(
+                                    text = tgLiveStatus.label,
+                                    color = TelegramBlue,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+                        }
+                    }
                     Text(
-                        text = destination.platform.platformName,
-                        color = Color.White,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = destination.serverUrl,
+                        text = if (isTelegram && destination.serverUrl.isBlank()) {
+                            if (tgChannel != null) "Channel: ${tgChannel?.title} (Dynamic MTProto)" else "Official MTProto Ingest (Not configured)"
+                        } else destination.serverUrl,
                         color = TextMuted,
                         fontSize = 9.sp,
                         fontFamily = FontFamily.Monospace,
@@ -529,6 +570,27 @@ private fun DestinationCard(
                 }
             }
 
+            // Telegram specific setup button
+            if (isTelegram) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(
+                    onClick = { onOpenTelegramSetup?.invoke() },
+                    colors = ButtonDefaults.buttonColors(containerColor = TelegramBlue),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("open_telegram_setup_btn")
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (tgChannel != null) "Configure Live: ${tgChannel?.title}" else "Setup Telegram Channel Live (MTProto API)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
             // Stream Key and URL input toggle
             Spacer(modifier = Modifier.height(4.dp))
             Row(
@@ -546,7 +608,7 @@ private fun DestinationCard(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = if (isExpanded) "Hide Configuration" else "Edit Server URL & Stream Key",
+                    text = if (isExpanded) "Hide Configuration" else if (isTelegram) "View Telegram Live Endpoint Details" else "Edit Server URL & Stream Key",
                     color = StudioCyan,
                     fontSize = 10.sp
                 )
@@ -554,43 +616,77 @@ private fun DestinationCard(
 
             if (isExpanded) {
                 Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = serverUrlInput,
-                    onValueChange = {
-                        serverUrlInput = it
-                        onUpdateUrl(it)
-                    },
-                    label = { Text("Server URL", fontSize = 10.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color(0xFFCBD5E1),
-                        focusedBorderColor = StudioCyan,
-                        unfocusedBorderColor = StudioCardBorder
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("url_input_${destination.id}")
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                OutlinedTextField(
-                    value = streamKeyInput,
-                    onValueChange = {
-                        streamKeyInput = it
-                        onUpdateKey(it)
-                    },
-                    label = { Text("Stream Key", fontSize = 10.sp) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color(0xFFCBD5E1),
-                        focusedBorderColor = StudioCyan,
-                        unfocusedBorderColor = StudioCardBorder
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("key_input_${destination.id}")
-                )
+                if (isTelegram) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = StudioDarkSurface),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, TelegramBlue.copy(alpha = 0.5f))
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "OFFICIAL TELEGRAM MTPROTO ENDPOINT",
+                                color = TelegramBlue,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "Dynamic Ingest: ${destination.serverUrl.ifBlank { "Auto-assigned via phone.getGroupCallStreamRtmpUrl" }}",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "Stream Key: ••••••••••••••••••••",
+                                color = StudioNeonGreen,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
+                            Text(
+                                text = "✓ Key secured in memory; never exposed in Logcat or logs.",
+                                color = TextMuted,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = serverUrlInput,
+                        onValueChange = {
+                            serverUrlInput = it
+                            onUpdateUrl(it)
+                        },
+                        label = { Text("Server URL", fontSize = 10.sp) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color(0xFFCBD5E1),
+                            focusedBorderColor = StudioCyan,
+                            unfocusedBorderColor = StudioCardBorder
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("url_input_${destination.id}")
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = streamKeyInput,
+                        onValueChange = {
+                            streamKeyInput = it
+                            onUpdateKey(it)
+                        },
+                        label = { Text("Stream Key", fontSize = 10.sp) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color(0xFFCBD5E1),
+                            focusedBorderColor = StudioCyan,
+                            unfocusedBorderColor = StudioCardBorder
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("key_input_${destination.id}")
+                    )
+                }
             }
         }
     }
